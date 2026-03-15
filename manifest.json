@@ -1,9 +1,17 @@
 {
   "name": "Selection to Variables",
-  "id": "selection-to-variables-local",
+  "id": "1615136997796434946",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
-  "editorType": ["figma"],
-  "permissions": []
+  "editorType": [
+    "figma"
+  ],
+  "permissions": [],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ]
+  }
 }
