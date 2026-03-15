@@ -1,0 +1,17 @@
+{
+  "name": "selection-to-variables",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Figma plugin to turn selection data into variables, text styles, color styles, effect styles, and JSON tokens.",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch",
+    "test": "node scripts/test.js"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.117.0",
+    "esbuild": "^0.25.2",
+    "typescript": "^5.8.2"
+  }
+}

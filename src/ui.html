@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Selection to Variables</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #101114;
+        --panel: #181b20;
+        --panel-alt: #20242b;
+        --text: #f5f7fa;
+        --muted: #b0bac5;
+        --line: #2e343d;
+        --accent: #005757;
+        --accent-strong: #004646;
+        --danger: #f78080;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font: 13px/1.45 "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(125, 211, 167, 0.15), transparent 30%),
+          linear-gradient(180deg, #0d0e11 0%, #15171c 100%);
+        color: var(--text);
+      }
+
+      .app {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .hero,
+      .panel {
+        background: rgba(24, 27, 32, 0.92);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      .hero {
+        padding: 16px;
+      }
+
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .hero h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        line-height: 1.1;
+      }
+
+      .hero p,
+      .summary {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .hero p {
+        font-size: 14px;
+      }
+
+      .version {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .panel {
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .row {
+        display: grid;
+        gap: 6px;
+      }
+
+      .row.two {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .row.three {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .row.actions {
+        grid-template-columns: 0.9fr 1fr 1.2fr;
+      }
+
+      .row.actions.styles {
+        grid-template-columns: 1fr 1.2fr;
+      }
+
+      .row.topbar {
+        grid-template-columns: 1fr 1fr auto;
+        align-items: end;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      input,
+      select,
+      button,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel-alt);
+        color: var(--text);
+        padding: 10px 12px;
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 120ms ease, background 120ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.78;
+        transform: none;
+      }
+
+      button[data-loading="true"] {
+        position: relative;
+        padding-left: 38px;
+      }
+
+      button[data-loading="true"]::before {
+        content: "";
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        margin-top: -7px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.24);
+        border-top-color: currentColor;
+        animation: spin 0.75s linear infinite;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #eefbfb;
+        border-color: transparent;
+      }
+
+      .primary:hover {
+        background: var(--accent-strong);
+      }
+
+      .secondary {
+        background: transparent;
+      }
+
+      .tertiary {
+        background: rgba(24, 27, 32, 0.55);
+      }
+
+      .style-secondary {
+        background: #1d3b63;
+        border-color: #325b93;
+        color: #eef5ff;
+      }
+
+      .style-primary {
+        background: #f3b563;
+        border-color: transparent;
+        color: #2b1a04;
+      }
+
+      .color-secondary {
+        background: #5d3aa6;
+        border-color: #7c59c4;
+        color: #f7f1ff;
+      }
+
+      .color-primary {
+        background: #ff8f70;
+        border-color: transparent;
+        color: #301207;
+      }
+
+      .effect-secondary {
+        background: #1b5f55;
+        border-color: #2b8577;
+        color: #ecfffb;
+      }
+
+      .effect-primary {
+        background: #7fd4ff;
+        border-color: transparent;
+        color: #072230;
+      }
+
+      .items {
+        min-height: 220px;
+        max-height: 420px;
+        overflow: auto;
+        display: grid;
+        gap: 10px;
+      }
+
+      .accordion {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: rgba(22, 25, 31, 0.75);
+      }
+
+      .accordion summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        font-weight: 700;
+        font-size: 15px;
+      }
+
+      .accordion summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .accordion summary::after {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-right: 1.5px solid var(--muted);
+        border-bottom: 1.5px solid var(--muted);
+        transform: rotate(45deg);
+        transition: transform 140ms ease;
+        margin-left: auto;
+        flex: 0 0 auto;
+      }
+
+      .accordion[open] summary::after {
+        transform: rotate(225deg);
+      }
+
+      .accordion.flat {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        overflow: visible;
+      }
+
+      .accordion.flat summary {
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(46, 52, 61, 0.55);
+      }
+
+      .accordion.flat .group-body {
+        padding: 8px 0 4px;
+      }
+
+      .group-body {
+        padding: 0 12px 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .group-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .group-count {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .item {
+        border: 0;
+        border-radius: 0;
+        padding: 8px 0;
+        display: grid;
+        gap: 4px;
+        border-bottom: 1px solid rgba(46, 52, 61, 0.55);
+      }
+
+      .item-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .item-main {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(180px, 1.6fr) minmax(140px, 1fr) auto auto;
+        align-items: center;
+        gap: 10px;
+        flex: 1 1 auto;
+      }
+
+      .item-name-input {
+        min-width: 0;
+        padding: 6px 8px;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+
+      .item-value,
+      .item-occurrences {
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .badge {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #08140c;
+        background: var(--accent);
+        padding: 4px 8px;
+        border-radius: 999px;
+      }
+
+      .badge.secondary {
+        background: #2b3139;
+        color: var(--text);
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+      }
+
+      .item-meta {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .item:last-child {
+        border-bottom: 0;
+      }
+
+      .style-item .item-meta {
+        margin-left: 0;
+      }
+
+      .style-main {
+        grid-template-columns: minmax(220px, 1.8fr) minmax(120px, 1fr) auto;
+      }
+
+      .style-name {
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .style-badge {
+        background: #f3b563;
+        color: #2b1a04;
+      }
+
+      .color-style-badge {
+        background: #ff8f70;
+        color: #301207;
+      }
+
+      .effect-style-badge {
+        background: #7fd4ff;
+        color: #072230;
+      }
+
+      .color-chip {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .empty {
+        color: var(--danger);
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+      }
+
+      .toggle input {
+        width: 16px;
+        height: 16px;
+        padding: 0;
+      }
+
+      .action-targets {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .target-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(24, 27, 32, 0.55);
+        color: var(--text);
+      }
+
+      .target-option input {
+        width: 16px;
+        height: 16px;
+        padding: 0;
+      }
+
+      .subtle {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .diagnostics-inline {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .diagnostics-inline strong {
+        color: var(--text);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: rgba(32, 36, 43, 0.7);
+      }
+
+      .results-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .results-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #8b95a1;
+        box-shadow: 0 0 0 0 rgba(125, 211, 167, 0);
+      }
+
+      .status-dot[data-state="busy"] {
+        background: var(--accent);
+        animation: pulse 1.2s infinite;
+      }
+
+      .status-dot[data-state="warning"] {
+        background: #f3c969;
+      }
+
+      .status-dot[data-state="error"] {
+        background: var(--danger);
+      }
+
+      .toast {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(20, 24, 30, 0.96);
+        color: var(--text);
+        transform: translateY(12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+      }
+
+      .toast[data-visible="true"] {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast[data-level="success"] {
+        border-color: rgba(125, 211, 167, 0.35);
+      }
+
+      .toast[data-level="warning"] {
+        border-color: rgba(243, 201, 105, 0.35);
+      }
+
+      .toast[data-level="error"] {
+        border-color: rgba(247, 128, 128, 0.35);
+      }
+
+      .help-content {
+        display: grid;
+        gap: 8px;
+        padding: 0 14px 14px 14px;
+        color: var(--muted);
+      }
+
+      .help-content strong {
+        color: var(--text);
+      }
+
+      .summary-right {
+        display: inline-flex;
+        align-items: center;
+        font-weight: 400;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .window-toggle {
+        width: auto;
+        min-width: 120px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: transparent;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(125, 211, 167, 0.35);
+        }
+        100% {
+          box-shadow: 0 0 0 12px rgba(125, 211, 167, 0);
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <section class="hero">
+        <div class="hero-top">
+          <div>
+            <h1>Selection to Variables</h1>
+            <p>Read the current selection, review raw values, and turn them into Figma variables.</p>
+          </div>
+          <button class="secondary window-toggle" id="windowToggleButton">Maximize</button>
+        </div>
+        <div class="version">UI v3</div>
+      </section>
+
+      <details class="accordion" id="helpDetails" open>
+        <summary>
+          <span>How this plugin works</span>
+          <span class="summary-right">Step-by-step guidance</span>
+        </summary>
+        <div class="help-content">
+          <div><strong>1. Select Groups, Frames, or Sections</strong> The plugin only scans those top-level selection types.</div>
+          <div><strong>2. Read selection</strong> It extracts colors, text values, sizes, spacing, and repeated values from the selected content.</div>
+          <div><strong>3. Review all tokens</strong> Tokens are shown in Colors, Texts, and Sizes groups, and each group opens with all scanned rows visible.</div>
+          <div><strong>4. Keep naming compact</strong> Suggested names are shorter now, but you can still edit them before export or creation.</div>
+          <div><strong>5. Export or create variables</strong> After reviewing the scanned tokens, export JSON or create Figma variables and bind them back to the selection.</div>
+        </div>
+      </details>
+
+      <details class="accordion" open>
+        <summary>
+          <span>Setup</span>
+          <span class="summary-right">Configuration</span>
+        </summary>
+        <div class="group-body">
+          <div class="row topbar">
+            <div class="row">
+              <label for="collectionSelect">Collection</label>
+              <select id="collectionSelect"></select>
+              <input class="hidden" id="newCollectionName" placeholder="New collection name" value="Selection Variables" />
+            </div>
+            <div class="row">
+              <label for="modeSelect">Mode</label>
+              <select id="modeSelect"></select>
+              <input class="hidden" id="newModeName" placeholder="New mode name" value="Base" />
+            </div>
+            <button class="secondary" data-loading="false" id="scanButton">Read selection</button>
+          </div>
+
+          <label class="toggle">
+            <input id="repeatedOnly" type="checkbox" />
+            Show repeated tokens only
+          </label>
+
+          <label class="toggle">
+            <input id="autoScanSelection" type="checkbox" />
+            Refresh automatically when the selection changes
+          </label>
+
+          <div class="status-bar">
+            <span class="status-dot" data-state="idle" id="statusDot"></span>
+            <span id="statusText">Ready</span>
+          </div>
+
+          <p class="summary" id="summary">Select Groups, Frames, or Sections and click "Read selection".</p>
+        </div>
+      </details>
+
+      <details class="accordion" open>
+        <summary>
+          <span>Selection tokens</span>
+          <span class="summary-right">Scanned values appear here</span>
+        </summary>
+        <div class="group-body">
+          <div class="items" id="items"></div>
+        </div>
+      </details>
+
+      <details class="accordion" open>
+        <summary>
+          <span>Text styles</span>
+          <span class="summary-right">Detected typography styles appear here</span>
+        </summary>
+        <div class="group-body">
+          <div class="diagnostics-inline" id="textStylesDiagnostics"></div>
+          <div class="items" id="textStyles"></div>
+        </div>
+      </details>
+
+      <details class="accordion" open>
+        <summary>
+          <span>Color styles</span>
+          <span class="summary-right">Detected paint styles appear here</span>
+        </summary>
+        <div class="group-body">
+          <div class="items" id="colorStyles"></div>
+        </div>
+      </details>
+
+      <details class="accordion" open>
+        <summary>
+          <span>Effect styles</span>
+          <span class="summary-right">Detected layer effects appear here</span>
+        </summary>
+        <div class="group-body">
+          <div class="items" id="effectStyles"></div>
+        </div>
+      </details>
+
+      <div class="action-targets">
+        <label class="target-option">
+          <input type="checkbox" name="actionTarget" value="variables" checked />
+          Variables
+        </label>
+        <label class="target-option">
+          <input type="checkbox" name="actionTarget" value="text-styles" />
+          Text styles
+        </label>
+        <label class="target-option">
+          <input type="checkbox" name="actionTarget" value="color-styles" />
+          Color styles
+        </label>
+        <label class="target-option">
+          <input type="checkbox" name="actionTarget" value="effect-styles" />
+          Effect styles
+        </label>
+      </div>
+
+      <div class="row actions">
+        <button class="tertiary" id="exportButton">Export JSON</button>
+        <button class="secondary" data-loading="false" id="createButton">Create</button>
+        <button class="primary" data-loading="false" id="createApplyButton">Create and apply</button>
+      </div>
+      <div class="subtle">Choose what to create, then use Create or Create and apply.</div>
+
+      <div class="toast" data-level="info" data-visible="false" id="toast"></div>
+    </div>
+
+    <!-- UI_SCRIPT -->
+  </body>
+</html>
