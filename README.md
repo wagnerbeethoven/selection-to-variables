@@ -1,5 +1,7 @@
 # Selection to Variables
 
+![Selection to Variables preview](assets/img/thumbnail.png)
+
 Selection to Variables is a Figma plugin for turning raw selection data into reusable design assets.
 
 It scans selected layers, detects token candidates, exports JSON, creates variables, and generates reusable text, color, and effect styles.
