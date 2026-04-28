@@ -257,6 +257,7 @@ figma.ui.onmessage = async (
     | SavePrefsRequest
     | ResizeWindowRequest
 ) => {
+  console.log("[plugin] message received:", message.type);
   try {
     if (message.type === "scan-selection") {
       postFeedback("info", "Scanning current selection...");
@@ -339,7 +340,9 @@ function scheduleAutoScan() {
 }
 
 function postScanResult(silent = false) {
+  console.log("[plugin] postScanResult — selection length:", figma.currentPage.selection.length);
   const { items, colorStyles, effectStyles, textStyles, textStyleDiagnostics, selectedNodeTypes, acceptedNodeTypes } = scanSelection(silent);
+  console.log("[plugin] scan done — items:", items.length, "colorStyles:", colorStyles.length, "effectStyles:", effectStyles.length, "textStyles:", textStyles.length);
   const response: ScanPayload = {
     type: "scan-result",
     items,
@@ -743,7 +746,9 @@ function compactCategoryPath(category: string): string {
 }
 
 async function createVariables(payload: CreatePayload) {
+  console.log("[plugin] createVariables — total items:", payload.items.length, "collection:", payload.collectionName);
   const includedItems = payload.items.filter((item) => item.include);
+  console.log("[plugin] included items:", includedItems.length);
   if (includedItems.length === 0) {
     figma.notify("No items selected to create variables.");
     postFeedback("warning", "No checked items available to create variables.");
@@ -1863,9 +1868,11 @@ function postFeedback(level: FeedbackPayload["level"], message: string) {
 }
 
 async function postCollectionsData() {
+  const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+  console.log("[plugin] collections found:", allCollections.map((c) => c.name));
   const payload: CollectionsLoadedPayload = {
     type: "collections-loaded",
-    collections: (await figma.variables.getLocalVariableCollectionsAsync()).map((collection) => ({
+    collections: allCollections.map((collection) => ({
       name: collection.name,
       modes: collection.modes.map((mode) => mode.name)
     }))

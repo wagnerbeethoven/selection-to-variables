@@ -187,6 +187,8 @@ window.onmessage = (event: MessageEvent) => {
     return;
   }
 
+  console.log("[ui] message received:", message.type, message);
+
   if (message.type === "scan-result") {
     setBusy(false);
     const hasRepeatedItems = message.repeatedCount > 0;
@@ -255,6 +257,7 @@ window.onmessage = (event: MessageEvent) => {
   }
 
   if (message.type === "action-feedback") {
+    console.log("[ui] feedback:", message.level, message.message);
     if (message.level !== "info") {
       state.pendingCreateActions = Math.max(0, state.pendingCreateActions - 1);
       if (state.pendingCreateActions === 0) {
