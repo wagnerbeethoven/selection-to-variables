@@ -1116,7 +1116,7 @@ async function createColorStyles(payload: CreateColorStylesPayload) {
 
   let applied = 0;
   if (payload.applyToSelection) {
-    applied = applyColorStylesToSelection(candidates, createdStyles);
+    applied = await applyColorStylesToSelection(candidates, createdStyles);
   }
 
   finalizeStyleCreation("color styles", created, reused, applied, payload.applyToSelection);
@@ -1155,7 +1155,7 @@ async function createEffectStyles(payload: CreateEffectStylesPayload) {
 
   let applied = 0;
   if (payload.applyToSelection) {
-    applied = applyEffectStylesToSelection(candidates, createdStyles);
+    applied = await applyEffectStylesToSelection(candidates, createdStyles);
   }
 
   finalizeStyleCreation("effect styles", created, reused, applied, payload.applyToSelection);
@@ -1573,7 +1573,7 @@ async function applyTextStylesToSelection(candidates: TextStyleCandidate[], styl
   return applied;
 }
 
-function applyEffectStylesToSelection(candidates: EffectStyleCandidate[], styleMap: Map<string, EffectStyle>) {
+async function applyEffectStylesToSelection(candidates: EffectStyleCandidate[], styleMap: Map<string, EffectStyle>) {
   const candidateByNodeId = new Map<string, EffectStyleCandidate>();
   for (const candidate of candidates) {
     for (const nodeId of candidate.nodeIds) {
@@ -1585,34 +1585,34 @@ function applyEffectStylesToSelection(candidates: EffectStyleCandidate[], styleM
 
   let applied = 0;
   for (const node of figma.currentPage.selection.filter(isAllowedSelectionNode)) {
-    applied += applyEffectStylesInNode(node, candidateByNodeId, styleMap);
+    applied += await applyEffectStylesInNode(node, candidateByNodeId, styleMap);
   }
   return applied;
 }
 
-function applyEffectStylesInNode(
+async function applyEffectStylesInNode(
   node: SceneNode,
   candidateByNodeId: Map<string, EffectStyleCandidate>,
   styleMap: Map<string, EffectStyle>
-): number {
+): Promise<number> {
   let applied = 0;
   const candidate = candidateByNodeId.get(node.id);
   const style = candidate ? styleMap.get(candidate.key) : null;
   if (style && "effectStyleId" in node && "effects" in node && Array.isArray(node.effects) && node.effects.length > 0) {
-    node.effectStyleId = style.id;
+    await (node as SceneNode & { setEffectStyleIdAsync(id: string): Promise<void> }).setEffectStyleIdAsync(style.id);
     applied += 1;
   }
 
   if ("children" in node) {
     for (const child of node.children) {
-      applied += applyEffectStylesInNode(child, candidateByNodeId, styleMap);
+      applied += await applyEffectStylesInNode(child, candidateByNodeId, styleMap);
     }
   }
 
   return applied;
 }
 
-function applyColorStylesToSelection(candidates: ColorStyleCandidate[], styleMap: Map<string, PaintStyle>) {
+async function applyColorStylesToSelection(candidates: ColorStyleCandidate[], styleMap: Map<string, PaintStyle>) {
   const candidateByNodeId = new Map<string, ColorStyleCandidate>();
   for (const candidate of candidates) {
     for (const nodeId of candidate.nodeIds) {
@@ -1624,28 +1624,28 @@ function applyColorStylesToSelection(candidates: ColorStyleCandidate[], styleMap
 
   let applied = 0;
   for (const node of figma.currentPage.selection.filter(isAllowedSelectionNode)) {
-    applied += applyColorStylesInNode(node, candidateByNodeId, styleMap);
+    applied += await applyColorStylesInNode(node, candidateByNodeId, styleMap);
   }
   return applied;
 }
 
-function applyColorStylesInNode(
+async function applyColorStylesInNode(
   node: SceneNode,
   candidateByNodeId: Map<string, ColorStyleCandidate>,
   styleMap: Map<string, PaintStyle>
-): number {
+): Promise<number> {
   let applied = 0;
 
   const candidate = candidateByNodeId.get(node.id);
   const style = candidate ? styleMap.get(candidate.key) : null;
   if (style && "fillStyleId" in node && "fills" in node && Array.isArray(node.fills) && node.fills.length > 0) {
-    node.fillStyleId = style.id;
+    await (node as SceneNode & { setFillStyleIdAsync(id: string): Promise<void> }).setFillStyleIdAsync(style.id);
     applied += 1;
   }
 
   if ("children" in node) {
     for (const child of node.children) {
-      applied += applyColorStylesInNode(child, candidateByNodeId, styleMap);
+      applied += await applyColorStylesInNode(child, candidateByNodeId, styleMap);
     }
   }
 
