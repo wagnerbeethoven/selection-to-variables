@@ -520,14 +520,14 @@ function buildItemCard(item: UiItem) {
 
   const colorPreview =
     item.type === "COLOR"
-      ? `<div class="color-chip" style="background: rgba(${Math.round((item.value as any).r * 255)}, ${Math.round((item.value as any).g * 255)}, ${Math.round((item.value as any).b * 255)}, ${(item.value as any).a})"></div>`
+      ? (() => { const c = item.value as { r: number; g: number; b: number; a: number }; return `<div class="color-chip" style="background: rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, ${c.a})"></div>`; })()
       : "";
 
   wrapper.innerHTML = `
     <div class="item-line">
       ${colorPreview}
       <div class="item-main">
-        <input class="item-name-input" value="${escapeAttribute(item.name)}" data-name="${item.id}" />
+        <input class="item-name-input" value="${escapeHtml(item.name)}" data-name="${item.id}" />
         <div class="item-value">${escapeHtml(valueLabel)}</div>
         <div class="item-occurrences">${item.occurrences}x</div>
         <input type="checkbox" ${item.include ? "checked" : ""} data-id="${item.id}" />
@@ -572,7 +572,7 @@ function buildTextStyleCard(item: UiTextStyle) {
   wrapper.innerHTML = `
     <div class="item-line">
       <div class="item-main style-main">
-        <input class="item-name-input" value="${escapeAttribute(item.name)}" />
+        <input class="item-name-input" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(formatTextStyleValue(item))}</div>
         <div class="item-occurrences">${item.occurrences}x</div>
       </div>
@@ -605,7 +605,7 @@ function buildColorStyleCard(item: UiColorStyle) {
     <div class="item-line">
       <div class="color-chip" style="background: rgba(${Math.round(item.value.r * 255)}, ${Math.round(item.value.g * 255)}, ${Math.round(item.value.b * 255)}, ${item.value.a})"></div>
       <div class="item-main style-main">
-        <input class="item-name-input" value="${escapeAttribute(item.name)}" />
+        <input class="item-name-input" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(rgbaLabel(item.value))}</div>
         <div class="item-occurrences">${item.occurrences}x</div>
       </div>
@@ -636,7 +636,7 @@ function buildEffectStyleCard(item: UiEffectStyle) {
   wrapper.innerHTML = `
     <div class="item-line">
       <div class="item-main style-main">
-        <input class="item-name-input" value="${escapeAttribute(item.name)}" />
+        <input class="item-name-input" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(summarizeEffects(item.effects))}</div>
         <div class="item-occurrences">${item.occurrences}x</div>
       </div>
@@ -825,10 +825,6 @@ function escapeHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-}
-
-function escapeAttribute(value: string) {
-  return escapeHtml(value);
 }
 
 function formatTypes(values: string[]) {

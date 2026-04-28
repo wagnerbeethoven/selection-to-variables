@@ -295,7 +295,7 @@ figma.ui.onmessage = async (
         type: "prefs-loaded",
         prefs: prefs ?? {}
       });
-      postCollectionsData();
+      await postCollectionsData();
       return;
     }
 
@@ -732,11 +732,6 @@ function buildSizeTokenName(category: string, value: number): string {
 function compactCategoryPath(category: string): string {
   return category
     .replace(/^background\//, "bg/")
-    .replace(/^surface\//, "surface/")
-    .replace(/^text\//, "text/")
-    .replace(/^action\//, "action/")
-    .replace(/^border\//, "border/")
-    .replace(/^icon\//, "icon/")
     .replace(/^typography\/font-size$/, "type/size")
     .replace(/^typography\/line-height$/, "type/line")
     .replace(/^layout\/padding\//, "space/pad-")
@@ -744,11 +739,7 @@ function compactCategoryPath(category: string): string {
     .replace(/^layout\//, "layout/")
     .replace(/^shape\/radius$/, "radius")
     .replace(/^dimension\/width$/, "width")
-    .replace(/^dimension\/height$/, "height")
-    .replace(/^component\/width$/, "component/width")
-    .replace(/^component\/height$/, "component/height")
-    .replace(/^media\/width$/, "media/width")
-    .replace(/^media\/height$/, "media/height");
+    .replace(/^dimension\/height$/, "height");
 }
 
 async function createVariables(payload: CreatePayload) {
@@ -761,9 +752,9 @@ async function createVariables(payload: CreatePayload) {
 
   const collectionName = payload.collectionName.trim() || "Selection Variables";
   const modeName = payload.modeName.trim() || "Base";
-  const collection = findOrCreateCollection(collectionName);
+  const collection = await findOrCreateCollection(collectionName);
   const modeId = ensureMode(collection, modeName);
-  const existingVariables = getVariablesByCollection(collection);
+  const existingVariables = await getVariablesByCollection(collection);
   const usedKeys = new Set<string>(existingVariables.keys());
   const createdVariables = new Map<string, Variable>();
 
@@ -820,7 +811,7 @@ type LocalStyle = TextStyle | PaintStyle | EffectStyle;
 
 async function getStyleVariableLookup(): Promise<StyleVariableLookup> {
   const prefs = await figma.clientStorage.getAsync("ui-prefs");
-  const collections = figma.variables.getLocalVariableCollections();
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
   const collectionById = new Map(collections.map((collection) => [collection.id, collection]));
   const preferredCollection =
     prefs && typeof prefs.collectionName === "string"
@@ -830,8 +821,7 @@ async function getStyleVariableLookup(): Promise<StyleVariableLookup> {
     ? preferredCollection.modes.find((mode) => mode.name === (prefs && prefs.modeName))?.modeId ?? preferredCollection.modes[0]?.modeId
     : undefined;
 
-  const variables = figma.variables
-    .getLocalVariables()
+  const variables = (await figma.variables.getLocalVariablesAsync())
     .filter((variable) => isSupportedVariableKind(variable.resolvedType))
     .sort((a, b) => {
       const aPreferred = a.variableCollectionId === preferredCollection?.id ? 1 : 0;
@@ -1053,7 +1043,7 @@ async function createTextStyles(payload: CreateTextStylesPayload) {
     return;
   }
 
-  const existingStyles = getLocalStylesByName(figma.getLocalTextStyles());
+  const existingStyles = getLocalStylesByName(await figma.getLocalTextStylesAsync());
   const createdStyles = new Map<string, TextStyle>();
   const variableLookup = await getStyleVariableLookup();
   let created = 0;
@@ -1098,7 +1088,7 @@ async function createColorStyles(payload: CreateColorStylesPayload) {
     return;
   }
 
-  const existingStyles = getLocalStylesByName(figma.getLocalPaintStyles());
+  const existingStyles = getLocalStylesByName(await figma.getLocalPaintStylesAsync());
   const createdStyles = new Map<string, PaintStyle>();
   const variableLookup = await getStyleVariableLookup();
   let created = 0;
@@ -1137,7 +1127,7 @@ async function createEffectStyles(payload: CreateEffectStylesPayload) {
     return;
   }
 
-  const existingStyles = getLocalStylesByName(figma.getLocalEffectStyles());
+  const existingStyles = getLocalStylesByName(await figma.getLocalEffectStylesAsync());
   const createdStyles = new Map<string, EffectStyle>();
   const variableLookup = await getStyleVariableLookup();
   let created = 0;
@@ -1320,7 +1310,6 @@ function collectTextStyleCandidatesFromNodes(validSelection: Array<GroupNode | F
   }
 
   const sortedCandidates = [...candidates.values()]
-    .filter((candidate) => candidate.occurrences > 0)
     .sort((a, b) => {
       if (b.occurrences !== a.occurrences) {
         return b.occurrences - a.occurrences;
@@ -1853,9 +1842,8 @@ function ensureMode(collection: VariableCollection, modeName: string): string {
   return collection.addMode(modeName);
 }
 
-function findOrCreateCollection(collectionName: string): VariableCollection {
-  const existing = figma.variables
-    .getLocalVariableCollections()
+async function findOrCreateCollection(collectionName: string): Promise<VariableCollection> {
+  const existing = (await figma.variables.getLocalVariableCollectionsAsync())
     .find((collection) => collection.name === collectionName);
 
   if (existing) {
@@ -1874,10 +1862,10 @@ function postFeedback(level: FeedbackPayload["level"], message: string) {
   figma.ui.postMessage(payload);
 }
 
-function postCollectionsData() {
+async function postCollectionsData() {
   const payload: CollectionsLoadedPayload = {
     type: "collections-loaded",
-    collections: figma.variables.getLocalVariableCollections().map((collection) => ({
+    collections: (await figma.variables.getLocalVariableCollectionsAsync()).map((collection) => ({
       name: collection.name,
       modes: collection.modes.map((mode) => mode.name)
     }))
@@ -1972,16 +1960,16 @@ function serializeEffects(effects: Effect[]) {
 }
 
 function cloneEffects(effects: Effect[]) {
-  return JSON.parse(JSON.stringify(effects)) as Effect[];
+  return serializeEffects(effects) as unknown as Effect[];
 }
 
 function isAllowedSelectionNode(node: SceneNode): node is GroupNode | FrameNode | SectionNode {
   return node.type === "GROUP" || node.type === "FRAME" || node.type === "SECTION";
 }
 
-function getVariablesByCollection(collection: VariableCollection): Map<string, Variable> {
+async function getVariablesByCollection(collection: VariableCollection): Promise<Map<string, Variable>> {
   const map = new Map<string, Variable>();
-  const variables = figma.variables.getLocalVariables();
+  const variables = await figma.variables.getLocalVariablesAsync();
 
   for (const variable of variables) {
     if (variable.variableCollectionId !== collection.id) {
@@ -2037,7 +2025,8 @@ function rgbaToHexToken(value: RgbaValue) {
   const r = Math.round(value.r * 255).toString(16).padStart(2, "0");
   const g = Math.round(value.g * 255).toString(16).padStart(2, "0");
   const b = Math.round(value.b * 255).toString(16).padStart(2, "0");
-  return `${r}${g}${b}`;
+  const a = Math.round(value.a * 255).toString(16).padStart(2, "0");
+  return value.a < 1 ? `${r}${g}${b}${a}` : `${r}${g}${b}`;
 }
 
 function sameRgba(a: RgbaValue, b: RgbaValue): boolean {
