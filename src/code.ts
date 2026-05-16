@@ -2,6 +2,7 @@ import {
   buildVariableLookupKey,
   ensureUniqueVariableName,
   inferRole,
+  inferState,
   normalizeNumber,
   round,
   slugify,
@@ -475,7 +476,7 @@ function collectColorItems(node: SceneNode, items: Map<string, RawItem>, trail: 
       group: "colors",
       category,
       type: "COLOR",
-      name: buildColorTokenName(category, node.name, value),
+      name: buildColorTokenName(category, trail),
       value,
       description: rgbaLabel(value),
       occurrences: 1,
@@ -715,34 +716,42 @@ function getSemanticContext(node: SceneNode, trail: string[]): string {
   return `${node.type} ${trail.join(" ")}`.toLowerCase();
 }
 
-function buildColorTokenName(category: string, nodeName: string, value: RgbaValue): string {
-  const compactCategory = compactCategoryPath(category);
-  const namePart = slugify(nodeName).slice(0, 18);
-  const colorPart = rgbaToHexToken(value);
-  return namePart ? `color/${compactCategory}/${namePart}-${colorPart}` : `color/${compactCategory}/${colorPart}`;
+function buildColorTokenName(category: string, trail: string[]): string {
+  const state = inferState(trail.join(" ").toLowerCase());
+  return `color/${category}/${state}`;
 }
 
 function buildTextTokenName(category: string, text: string, fallbackName: string): string {
-  const compactCategory = compactCategoryPath(category);
   const content = slugify(text).slice(0, 24) || slugify(fallbackName).slice(0, 24) || "content";
-  return `text/${compactCategory}/${content}`;
+  return `content/${category}/${content}`;
 }
 
 function buildSizeTokenName(category: string, value: number): string {
-  return `size/${compactCategoryPath(category)}/${normalizeNumber(round(value))}`;
+  return `${dtcgSizePath(category)}/${normalizeNumber(round(value))}`;
 }
 
-function compactCategoryPath(category: string): string {
-  return category
-    .replace(/^background\//, "bg/")
-    .replace(/^typography\/font-size$/, "type/size")
-    .replace(/^typography\/line-height$/, "type/line")
-    .replace(/^layout\/padding\//, "space/pad-")
-    .replace(/^layout\/gap$/, "space/gap")
-    .replace(/^layout\//, "layout/")
-    .replace(/^shape\/radius$/, "radius")
-    .replace(/^dimension\/width$/, "width")
-    .replace(/^dimension\/height$/, "height");
+function dtcgSizePath(category: string): string {
+  const map: Record<string, string> = {
+    "typography/font-size": "typography/font-size",
+    "typography/line-height": "typography/line-height",
+    "layout/gap": "spacing/gap",
+    "layout/padding/top": "spacing/padding/top",
+    "layout/padding/right": "spacing/padding/right",
+    "layout/padding/bottom": "spacing/padding/bottom",
+    "layout/padding/left": "spacing/padding/left",
+    "shape/radius": "border-radius",
+    "dimension/width": "dimension/width",
+    "dimension/height": "dimension/height",
+    "icon/width": "dimension/icon/width",
+    "icon/height": "dimension/icon/height",
+    "component/width": "dimension/component/width",
+    "component/height": "dimension/component/height",
+    "media/width": "dimension/media/width",
+    "media/height": "dimension/media/height",
+    "layout/width": "dimension/layout/width",
+    "layout/height": "dimension/layout/height",
+  };
+  return map[category] ?? category;
 }
 
 async function createVariables(payload: CreatePayload) {
@@ -1008,6 +1017,15 @@ function bindVariablesToEffect(effect: Effect, lookup: StyleVariableLookup): Eff
   return currentEffect;
 }
 
+function safeBind(node: SceneNode, field: VariableBindableNodeField, variable: Variable): boolean {
+  try {
+    node.setBoundVariable(field, variable);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function safeBindTextStyleVariable(style: TextStyle, field: VariableBindableTextField, variable: Variable) {
   try {
     style.setBoundVariable(field, variable);
@@ -1202,7 +1220,7 @@ function collectColorStyleCandidatesFromNodes(validSelection: Array<GroupNode | 
 
         candidates.set(key, {
           key,
-          name: buildColorStyleName(category, value),
+          name: buildColorStyleName(category, trail),
           category,
           value,
           occurrences: 1,
@@ -1456,11 +1474,12 @@ function buildTextStyleName(node: TextNode, trail: string[], signature: TextStyl
   const category = inferTextStyleCategory(node, trail);
   const scale = inferTextStyleScale(signature.fontSize);
   const weight = slugify(signature.fontName.style).replace(/-/g, "") || "regular";
-  return `type/${category}/${scale}/${weight}`;
+  return `typography/${category}/${scale}/${weight}`;
 }
 
-function buildColorStyleName(category: string, value: RgbaValue) {
-  return `paint/${compactCategoryPath(category)}/${rgbaToHexToken(value)}`;
+function buildColorStyleName(category: string, trail: string[]): string {
+  const state = inferState(trail.join(" ").toLowerCase());
+  return `color/${category}/${state}`;
 }
 
 function buildEffectStyleName(category: string, effects: Effect[]) {
@@ -1713,19 +1732,13 @@ function bindVariablesInNode(node: SceneNode, items: VariableDraft[], variableMa
   if ("width" in node) {
     const match = items.find((item) => item.type === "FLOAT" && item.id === `width:${round(node.width)}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable("width", variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, "width", variable)) applied += 1;
   }
 
   if ("height" in node) {
     const match = items.find((item) => item.type === "FLOAT" && item.id === `height:${round(node.height)}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable("height", variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, "height", variable)) applied += 1;
   }
 
   if ("layoutMode" in node && node.layoutMode !== "NONE") {
@@ -1737,11 +1750,10 @@ function bindVariablesInNode(node: SceneNode, items: VariableDraft[], variableMa
     const match = items.find((item) => item.type === "FLOAT" && item.id === `radius:${radius}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && hasUniformCornerRadius(node)) {
-      node.setBoundVariable("topLeftRadius", variable);
-      node.setBoundVariable("topRightRadius", variable);
-      node.setBoundVariable("bottomLeftRadius", variable);
-      node.setBoundVariable("bottomRightRadius", variable);
-      applied += 4;
+      if (safeBind(node, "topLeftRadius", variable)) applied += 1;
+      if (safeBind(node, "topRightRadius", variable)) applied += 1;
+      if (safeBind(node, "bottomLeftRadius", variable)) applied += 1;
+      if (safeBind(node, "bottomRightRadius", variable)) applied += 1;
     }
   }
 
@@ -1764,30 +1776,21 @@ function bindTextVariables(node: TextNode, items: VariableDraft[], variableMap: 
   if (characters) {
     const match = items.find((item) => item.type === "STRING" && item.id === `text:${characters}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable("characters", variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, "characters", variable)) applied += 1;
   }
 
   if (typeof node.fontSize === "number") {
     const fontSize = round(node.fontSize);
     const match = items.find((item) => item.type === "FLOAT" && item.id === `font-size:${fontSize}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable("fontSize", variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, "fontSize", variable)) applied += 1;
   }
 
   if (node.lineHeight !== figma.mixed && node.lineHeight.unit === "PIXELS") {
     const value = round(node.lineHeight.value);
     const match = items.find((item) => item.type === "FLOAT" && item.id === `line-height:${value}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable("lineHeight", variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, "lineHeight", variable)) applied += 1;
   }
 
   return applied;
@@ -1804,10 +1807,7 @@ function bindAutoLayoutVariables(
     const spacing = round(node.itemSpacing);
     const match = items.find((item) => item.type === "FLOAT" && item.id === `gap:${spacing}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable("itemSpacing", variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, "itemSpacing", variable)) applied += 1;
   }
 
   const bindings: Array<[VariableBindableNodeField, number, string]> = [
@@ -1824,10 +1824,7 @@ function bindAutoLayoutVariables(
     const value = round(rawValue);
     const match = items.find((item) => item.type === "FLOAT" && item.id === `${prefix}:${value}`);
     const variable = match ? variableMap.get(match.id) : null;
-    if (variable) {
-      node.setBoundVariable(field, variable);
-      applied += 1;
-    }
+    if (variable && safeBind(node, field, variable)) applied += 1;
   }
 
   return applied;
@@ -2028,13 +2025,6 @@ function stringKey(value: string) {
   return value.trim().toLowerCase();
 }
 
-function rgbaToHexToken(value: RgbaValue) {
-  const r = Math.round(value.r * 255).toString(16).padStart(2, "0");
-  const g = Math.round(value.g * 255).toString(16).padStart(2, "0");
-  const b = Math.round(value.b * 255).toString(16).padStart(2, "0");
-  const a = Math.round(value.a * 255).toString(16).padStart(2, "0");
-  return value.a < 1 ? `${r}${g}${b}${a}` : `${r}${g}${b}`;
-}
 
 function sameRgba(a: RgbaValue, b: RgbaValue): boolean {
   return a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;

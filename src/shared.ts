@@ -30,25 +30,23 @@ export function hasSome(input: string, terms: string[]): boolean {
 }
 
 export function inferRole(context: string): string {
-  if (hasSome(context, ["primary", "brand", "main"])) {
-    return "primary";
-  }
-  if (hasSome(context, ["secondary", "support", "alt"])) {
-    return "secondary";
-  }
-  if (hasSome(context, ["success", "positive", "approved", "done"])) {
-    return "success";
-  }
-  if (hasSome(context, ["warning", "alert", "caution"])) {
-    return "warning";
-  }
-  if (hasSome(context, ["danger", "error", "destructive", "negative"])) {
-    return "danger";
-  }
-  if (hasSome(context, ["info", "informational"])) {
-    return "info";
-  }
+  if (hasSome(context, ["primary", "brand", "main", "accent", "key"])) return "primary";
+  if (hasSome(context, ["secondary", "support", "alt", "auxiliary", "sub"])) return "secondary";
+  if (hasSome(context, ["success", "positive", "approved", "done", "confirm", "complete", "valid"])) return "success";
+  if (hasSome(context, ["warning", "alert", "caution", "attention", "moderate"])) return "warning";
+  if (hasSome(context, ["danger", "error", "destructive", "negative", "critical", "fail", "invalid", "remove", "delete"])) return "danger";
+  if (hasSome(context, ["info", "informational", "notice", "hint", "help", "tip"])) return "info";
   return "neutral";
+}
+
+export function inferState(context: string): string {
+  if (hasSome(context, ["hover", "hovered", "mouseover"])) return "hover";
+  if (hasSome(context, ["active", "pressed", "clicked", "down"])) return "active";
+  if (hasSome(context, ["disabled", "inactive", "unavailable", "muted"])) return "disabled";
+  if (hasSome(context, ["focus", "focused"])) return "focus";
+  if (hasSome(context, ["selected", "checked"])) return "selected";
+  if (hasSome(context, ["visited"])) return "visited";
+  return "default";
 }
 
 export function buildVariableLookupKey(type: VariableKind, name: string): string {
