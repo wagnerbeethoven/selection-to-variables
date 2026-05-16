@@ -428,12 +428,12 @@ function scanSelection(silent = false): {
   const effectStyles = collectEffectStyleCandidatesFromNodes(validSelection);
   const textStyleResult = collectTextStyleCandidatesFromNodes(validSelection);
   return {
-    items: [...items.values()].sort((a, b) => {
+    items: disambiguateNames([...items.values()].sort((a, b) => {
       if (b.occurrences !== a.occurrences) {
         return b.occurrences - a.occurrences;
       }
       return a.name.localeCompare(b.name);
-    }),
+    })),
     colorStyles,
     effectStyles,
     textStyles: textStyleResult.candidates,
@@ -638,6 +638,20 @@ function collectAutoLayoutSpacing(node: SceneNode, items: Map<string, RawItem>, 
       sources: [trail.join(" > ")]
     });
   }
+}
+
+function disambiguateNames<T extends { name: string }>(items: T[]): T[] {
+  const count = new Map<string, number>();
+  for (const item of items) {
+    count.set(item.name, (count.get(item.name) ?? 0) + 1);
+  }
+  const index = new Map<string, number>();
+  return items.map((item) => {
+    if ((count.get(item.name) ?? 1) <= 1) return item;
+    const i = (index.get(item.name) ?? 0) + 1;
+    index.set(item.name, i);
+    return { ...item, name: i === 1 ? item.name : `${item.name}-${i}` };
+  });
 }
 
 function upsertItem(items: Map<string, RawItem>, key: string, incoming: RawItem) {
@@ -1230,12 +1244,12 @@ function collectColorStyleCandidatesFromNodes(validSelection: Array<GroupNode | 
     });
   }
 
-  return [...candidates.values()].sort((a, b) => {
+  return disambiguateNames([...candidates.values()].sort((a, b) => {
     if (b.occurrences !== a.occurrences) {
       return b.occurrences - a.occurrences;
     }
     return a.name.localeCompare(b.name);
-  });
+  }));
 }
 
 function collectEffectStyleCandidatesFromNodes(validSelection: Array<GroupNode | FrameNode | SectionNode>): EffectStyleCandidate[] {
@@ -1272,12 +1286,12 @@ function collectEffectStyleCandidatesFromNodes(validSelection: Array<GroupNode |
     });
   }
 
-  return [...candidates.values()].sort((a, b) => {
+  return disambiguateNames([...candidates.values()].sort((a, b) => {
     if (b.occurrences !== a.occurrences) {
       return b.occurrences - a.occurrences;
     }
     return a.name.localeCompare(b.name);
-  });
+  }));
 }
 
 function visitColorNodes(node: SceneNode, trail: string[], callback: (node: SceneNode, trail: string[]) => void) {
@@ -1332,13 +1346,13 @@ function collectTextStyleCandidatesFromNodes(validSelection: Array<GroupNode | F
     });
   }
 
-  const sortedCandidates = [...candidates.values()]
+  const sortedCandidates = disambiguateNames([...candidates.values()]
     .sort((a, b) => {
       if (b.occurrences !== a.occurrences) {
         return b.occurrences - a.occurrences;
       }
       return a.name.localeCompare(b.name);
-    });
+    }));
   diagnostics.styleCandidatesGenerated = sortedCandidates.length;
   return {
     candidates: sortedCandidates,
