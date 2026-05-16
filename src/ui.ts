@@ -561,14 +561,31 @@ function buildItemCard(item: UiItem) {
 
   const badgeClass = `badge-${item.group}`;
 
+  const nameInput = document.createElement("input");
+  nameInput.className = "item-name-input";
+  nameInput.value = item.name;
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = item.include;
+  checkbox.style.cssText = "width:14px;height:14px;padding:0;cursor:pointer;";
+
+  nameInput.addEventListener("input", (e: Event) => {
+    const current = state.items.find((entry) => entry.id === item.id);
+    if (current) current.name = (e.target as HTMLInputElement).value;
+  });
+
+  checkbox.addEventListener("change", (e: Event) => {
+    const current = state.items.find((entry) => entry.id === item.id);
+    if (current) current.include = (e.target as HTMLInputElement).checked;
+  });
+
   wrapper.innerHTML = `
     <div class="item-line">
       ${colorPreview}
-      <div class="item-main">
-        <input class="item-name-input" value="${escapeHtml(item.name)}" data-name="${item.id}" />
+      <div class="item-main" id="item-main-${escapeHtml(item.id)}">
         <div class="item-value">${escapeHtml(valueLabel)}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
-        <input type="checkbox" ${item.include ? "checked" : ""} data-id="${item.id}" style="width:14px;height:14px;padding:0;cursor:pointer;" />
       </div>
     </div>
     <div class="item-meta">
@@ -578,18 +595,9 @@ function buildItemCard(item: UiItem) {
     </div>
   `;
 
-  const checkbox = wrapper.querySelector('input[type="checkbox"]') as HTMLInputElement;
-  const input = wrapper.querySelector(`input[data-name="${CSS.escape(item.id)}"]`) as HTMLInputElement;
-
-  checkbox.addEventListener("change", (e: Event) => {
-    const current = state.items.find((entry) => entry.id === item.id);
-    if (current) current.include = (e.target as HTMLInputElement).checked;
-  });
-
-  input.addEventListener("input", (e: Event) => {
-    const current = state.items.find((entry) => entry.id === item.id);
-    if (current) current.name = (e.target as HTMLInputElement).value;
-  });
+  const mainEl = wrapper.querySelector(".item-main") as HTMLDivElement;
+  mainEl.insertBefore(nameInput, mainEl.firstChild);
+  mainEl.appendChild(checkbox);
 
   return wrapper;
 }

@@ -646,12 +646,13 @@ function disambiguateNames<T extends { name: string }>(items: T[]): T[] {
     count.set(item.name, (count.get(item.name) ?? 0) + 1);
   }
   const index = new Map<string, number>();
-  return items.map((item) => {
-    if ((count.get(item.name) ?? 1) <= 1) return item;
+  for (const item of items) {
+    if ((count.get(item.name) ?? 1) <= 1) continue;
     const i = (index.get(item.name) ?? 0) + 1;
     index.set(item.name, i);
-    return { ...item, name: i === 1 ? item.name : `${item.name}-${i}` };
-  });
+    if (i > 1) item.name = `${item.name}-${i}`;
+  }
+  return items;
 }
 
 function upsertItem(items: Map<string, RawItem>, key: string, incoming: RawItem) {
