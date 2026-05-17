@@ -8,6 +8,9 @@ const distDir = path.join(root, "dist");
 const uiSource = path.join(root, "src", "ui.html");
 const uiTarget = path.join(distDir, "ui.html");
 
+const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+const buildDate = new Date().toISOString().slice(0, 10);
+
 function ensureDist() {
   fs.mkdirSync(distDir, { recursive: true });
 }
@@ -21,7 +24,11 @@ async function run() {
     format: "iife",
     target: "es2018",
     platform: "browser",
-    outdir: distDir
+    outdir: distDir,
+    define: {
+      PLUGIN_VERSION: JSON.stringify(pkg.version),
+      PLUGIN_BUILD_DATE: JSON.stringify(buildDate),
+    }
   });
 
   if (isWatch) {

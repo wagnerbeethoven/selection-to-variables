@@ -232,6 +232,11 @@ type ResizeWindowRequest = {
   mode: "default" | "maximized";
 };
 
+type OpenUrlRequest = {
+  type: "open-url";
+  url: string;
+};
+
 let autoScanSelection = false;
 let currentLocale: Locale = "en";
 let selectionScanTimer: number | undefined;
@@ -261,6 +266,7 @@ figma.ui.onmessage = async (
     | LoadPrefsRequest
     | SavePrefsRequest
     | ResizeWindowRequest
+    | OpenUrlRequest
 ) => {
   try {
     if (message.type === "scan-selection") {
@@ -316,6 +322,11 @@ figma.ui.onmessage = async (
     if (message.type === "resize-window") {
       const size = message.mode === "maximized" ? MAXIMIZED_UI_SIZE : DEFAULT_UI_SIZE;
       figma.ui.resize(size.width, size.height);
+      return;
+    }
+
+    if (message.type === "open-url") {
+      figma.openExternal(message.url);
     }
   } catch (error) {
     const messageText = error instanceof Error ? error.message : "Unknown plugin error.";

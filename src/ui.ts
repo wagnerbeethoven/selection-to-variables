@@ -1,6 +1,9 @@
 import { buildExportFilename, buildTokenTree } from "./export-tokens";
 import { type Locale, SUPPORTED_LOCALES, LOCALE_LABELS, t } from "./i18n";
 
+declare const PLUGIN_VERSION: string;
+declare const PLUGIN_BUILD_DATE: string;
+
 type UiItem = {
   id: string;
   include: boolean;
@@ -86,6 +89,11 @@ const createButtonEl = document.getElementById("createButton") as HTMLButtonElem
 const createApplyButtonEl = document.getElementById("createApplyButton") as HTMLButtonElement;
 const windowToggleButtonEl = document.getElementById("windowToggleButton") as HTMLButtonElement;
 const localeSelectEl = document.getElementById("localeSelect") as HTMLSelectElement;
+const aboutButtonEl = document.getElementById("aboutButton") as HTMLButtonElement;
+const aboutDialogEl = document.getElementById("aboutDialog") as HTMLDialogElement;
+const aboutCloseButtonEl = document.getElementById("aboutCloseButton") as HTMLButtonElement;
+const aboutVersionEl = document.getElementById("aboutVersion") as HTMLSpanElement;
+const aboutBuildDateEl = document.getElementById("aboutBuildDate") as HTMLSpanElement;
 const toastEl = document.getElementById("toast") as HTMLDivElement;
 const statusDotEl = document.getElementById("statusDot") as HTMLSpanElement;
 const statusTextEl = document.getElementById("statusText") as HTMLSpanElement;
@@ -536,6 +544,33 @@ newModeNameEl.addEventListener("change", persistPrefs);
 
 actionTargetEls.forEach((input) => {
   input.addEventListener("change", syncCreateActions);
+});
+
+// ── About dialog ──────────────────────────────────────────────────────────────
+aboutVersionEl.textContent = PLUGIN_VERSION;
+aboutBuildDateEl.textContent = PLUGIN_BUILD_DATE;
+
+aboutButtonEl.addEventListener("click", () => {
+  aboutDialogEl.showModal();
+  aboutCloseButtonEl.focus();
+});
+
+aboutCloseButtonEl.addEventListener("click", () => {
+  aboutDialogEl.close();
+  aboutButtonEl.focus();
+});
+
+aboutDialogEl.addEventListener("click", (e: MouseEvent) => {
+  if (e.target === aboutDialogEl) {
+    aboutDialogEl.close();
+    aboutButtonEl.focus();
+  }
+});
+
+aboutDialogEl.querySelectorAll<HTMLButtonElement>(".about-link[data-url]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    sendPluginMessage({ type: "open-url", url: btn.dataset.url! });
+  });
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────

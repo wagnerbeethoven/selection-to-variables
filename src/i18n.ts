@@ -89,6 +89,17 @@ const messages: Record<Locale, Record<string, string>> = {
     group_texts: "Texts",
     group_sizes: "Sizes",
 
+    // About dialog
+    about_btn: "About",
+    about_title: "About this plugin",
+    about_close: "Close",
+    about_created_by: "Created by",
+    about_version: "Version",
+    about_built: "Last updated",
+    about_description: "Transform selections from your Figma canvas into variables, text styles, color styles, effect styles, and JSON design tokens.",
+    about_contact: "Contact",
+    about_links: "Links",
+
     // Source summary
     source_none: "No sources",
     source_more: "+{count} more",
@@ -195,6 +206,16 @@ const messages: Record<Locale, Record<string, string>> = {
     group_texts: "Textos",
     group_sizes: "Tamanhos",
 
+    about_btn: "Sobre",
+    about_title: "Sobre este plugin",
+    about_close: "Fechar",
+    about_created_by: "Criado por",
+    about_version: "Versão",
+    about_built: "Última atualização",
+    about_description: "Transforme seleções do canvas Figma em variáveis, estilos de texto, cor e efeito, e tokens JSON de design.",
+    about_contact: "Contato",
+    about_links: "Links",
+
     source_none: "Sem fontes",
     source_more: "+{count} mais",
 
@@ -296,6 +317,16 @@ const messages: Record<Locale, Record<string, string>> = {
     group_colors: "Colores",
     group_texts: "Textos",
     group_sizes: "Tamaños",
+
+    about_btn: "Acerca de",
+    about_title: "Acerca de este plugin",
+    about_close: "Cerrar",
+    about_created_by: "Creado por",
+    about_version: "Versión",
+    about_built: "Última actualización",
+    about_description: "Transforma selecciones del canvas de Figma en variables, estilos de texto, color y efecto, y tokens JSON de diseño.",
+    about_contact: "Contacto",
+    about_links: "Enlaces",
 
     source_none: "Sin fuentes",
     source_more: "+{count} más",

@@ -65,6 +65,163 @@
         color: var(--figma-color-text);
       }
 
+      /* ── About dialog ── */
+      .about-btn {
+        width: auto;
+        padding: 3px 7px;
+        font-size: 11px;
+        border-radius: 5px;
+        background: transparent;
+        border-color: transparent;
+        color: var(--figma-color-text-secondary);
+      }
+
+      .about-btn:hover:not(:disabled) {
+        background: var(--figma-color-bg-secondary);
+        color: var(--figma-color-text);
+        border-color: transparent;
+      }
+
+      dialog {
+        width: min(400px, 92vw);
+        padding: 0;
+        border: 1px solid var(--figma-color-border);
+        border-radius: 10px;
+        background: var(--figma-color-bg);
+        color: var(--figma-color-text);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+        outline: none;
+      }
+
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+      }
+
+      .about-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid var(--figma-color-border);
+      }
+
+      .about-header-title {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .about-close {
+        width: auto;
+        padding: 3px 8px;
+        font-size: 11px;
+        background: transparent;
+        border-color: transparent;
+        color: var(--figma-color-text-secondary);
+      }
+
+      .about-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .about-description {
+        font-size: 12px;
+        color: var(--figma-color-text-secondary);
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      .about-creator {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .about-creator-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .about-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--figma-color-text-secondary);
+        margin-bottom: 4px;
+      }
+
+      .about-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 11px;
+        color: var(--figma-color-text-secondary);
+        padding: 10px 12px;
+        background: var(--figma-color-bg-secondary);
+        border-radius: 6px;
+      }
+
+      .about-meta span strong {
+        color: var(--figma-color-text);
+        font-weight: 600;
+      }
+
+      .about-links-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .about-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--figma-color-border);
+        border-radius: 6px;
+        background: var(--figma-color-bg-secondary);
+        font-size: 12px;
+        color: var(--figma-color-text);
+        text-decoration: none;
+        cursor: pointer;
+        transition: border-color 120ms, background 120ms;
+      }
+
+      .about-link:hover {
+        border-color: var(--plugin-accent);
+        background: var(--plugin-accent-subtle);
+        color: var(--plugin-accent);
+      }
+
+      .about-link:focus {
+        outline: none;
+        border-color: var(--plugin-accent);
+        box-shadow: 0 0 0 2px var(--plugin-accent-subtle);
+      }
+
+      .about-link-icon {
+        font-size: 14px;
+        flex-shrink: 0;
+        width: 18px;
+        text-align: center;
+      }
+
+      .about-link-label {
+        flex: 1;
+      }
+
+      .about-link-url {
+        font-size: 10px;
+        color: var(--figma-color-text-secondary);
+      }
+
+      .about-link:hover .about-link-url {
+        color: var(--plugin-accent);
+        opacity: 0.8;
+      }
+
       /* ── Stepper ── */
       .stepper {
         display: flex;
@@ -684,6 +841,7 @@
         <span class="header-title">Selection to Variables</span>
         <div class="header-actions">
           <select id="localeSelect" class="locale-select" aria-label="Language"></select>
+          <button class="about-btn btn-ghost" id="aboutButton" aria-haspopup="dialog" data-i18n="about_btn">About</button>
           <button class="btn-ghost" id="windowToggleButton" style="width:auto;padding:4px 8px;font-size:11px;">Maximize</button>
         </div>
       </header>
@@ -821,6 +979,44 @@
     </div><!-- /app -->
 
     <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-level="info" data-visible="false" id="toast"></div>
+
+    <dialog id="aboutDialog" aria-labelledby="aboutDialogTitle" aria-modal="true">
+      <div class="about-header">
+        <span class="about-header-title" id="aboutDialogTitle" data-i18n="about_title">About this plugin</span>
+        <button class="about-close btn-ghost" id="aboutCloseButton" data-i18n="about_close">Close</button>
+      </div>
+      <div class="about-body">
+        <p class="about-description" data-i18n="about_description">Transform selections from your Figma canvas into variables, text styles, color styles, effect styles, and JSON design tokens.</p>
+
+        <div class="about-creator">
+          <div class="about-label" data-i18n="about_created_by">Created by</div>
+          <span class="about-creator-name">Wagner Beethoven</span>
+        </div>
+
+        <div class="about-meta">
+          <span><strong data-i18n="about_version">Version</strong> <span id="aboutVersion"></span></span>
+          <span><strong data-i18n="about_built">Last updated</strong> <span id="aboutBuildDate"></span></span>
+        </div>
+
+        <div>
+          <div class="about-label" data-i18n="about_links">Links</div>
+          <div class="about-links-list">
+            <button class="about-link" data-url="https://wagnerbeethoven.com.br">
+              <span class="about-link-icon">🌐</span>
+              <span class="about-link-label">wagnerbeethoven.com.br</span>
+            </button>
+            <button class="about-link" data-url="https://linktr.ee/wagnerbeethoven">
+              <span class="about-link-icon">🔗</span>
+              <span class="about-link-label">linktr.ee/wagnerbeethoven</span>
+            </button>
+            <button class="about-link" data-url="mailto:oi@wagnerbeethoven.com.br">
+              <span class="about-link-icon">✉</span>
+              <span class="about-link-label">oi@wagnerbeethoven.com.br</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
 
     <!-- UI_SCRIPT -->
   </body>
