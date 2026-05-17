@@ -89,6 +89,19 @@ const messages: Record<Locale, Record<string, string>> = {
     group_texts: "Texts",
     group_sizes: "Sizes",
 
+    // Style type badges
+    badge_text_style: "Text style",
+    badge_color_style: "Color style",
+    badge_effect_style: "Effect style",
+
+    // Diagnostics
+    diag_text_nodes: "text nodes",
+    diag_segments: "segments",
+    diag_candidates: "candidates",
+
+    // Checkbox
+    checkbox_include: "Include token",
+
     // What's new
     whats_new_title: "What's new in v{version}",
     whats_new_i18n: "Interface now available in English, Portuguese (BR), and Spanish — auto-detected from your device",
@@ -215,6 +228,16 @@ const messages: Record<Locale, Record<string, string>> = {
     group_texts: "Textos",
     group_sizes: "Tamanhos",
 
+    badge_text_style: "Estilo de texto",
+    badge_color_style: "Estilo de cor",
+    badge_effect_style: "Estilo de efeito",
+
+    diag_text_nodes: "nós de texto",
+    diag_segments: "segmentos",
+    diag_candidates: "candidatos",
+
+    checkbox_include: "Incluir token",
+
     whats_new_title: "Novidades na v{version}",
     whats_new_i18n: "Interface disponível em inglês, português (BR) e espanhol — detectado automaticamente pelo dispositivo",
     whats_new_wizard: "Novo assistente de 3 etapas: Configurar → Revisar → Criar",
@@ -334,6 +357,16 @@ const messages: Record<Locale, Record<string, string>> = {
     group_colors: "Colores",
     group_texts: "Textos",
     group_sizes: "Tamaños",
+
+    badge_text_style: "Estilo de texto",
+    badge_color_style: "Estilo de color",
+    badge_effect_style: "Estilo de efecto",
+
+    diag_text_nodes: "nodos de texto",
+    diag_segments: "segmentos",
+    diag_candidates: "candidatos",
+
+    checkbox_include: "Incluir token",
 
     whats_new_title: "Novedades en v{version}",
     whats_new_i18n: "Interfaz disponible en inglés, portugués (BR) y español — detectado automáticamente por el dispositivo",

@@ -135,7 +135,6 @@ type FeedbackPayload = {
 
 type BackendReadyPayload = {
   type: "backend-ready";
-  message: string;
 };
 
 type CollectionsLoadedPayload = {
@@ -250,11 +249,7 @@ figma.showUI(__html__, {
   themeColors: true
 });
 
-const backendReadyPayload: BackendReadyPayload = {
-  type: "backend-ready",
-  message: t("backend_ready", currentLocale)
-};
-figma.ui.postMessage(backendReadyPayload);
+figma.ui.postMessage({ type: "backend-ready" } as BackendReadyPayload);
 
 figma.ui.onmessage = async (
   message:
@@ -327,6 +322,7 @@ figma.ui.onmessage = async (
 
     if (message.type === "open-url") {
       figma.openExternal(message.url);
+      return;
     }
   } catch (error) {
     const messageText = error instanceof Error ? error.message : "Unknown plugin error.";

@@ -112,6 +112,10 @@ const stepPanel2El = document.getElementById("stepPanel2") as HTMLDivElement;
 const stepPanel3El = document.getElementById("stepPanel3") as HTMLDivElement;
 const tabButtonEls = Array.from(document.querySelectorAll(".tab")) as HTMLButtonElement[];
 const tabPanelEls = Array.from(document.querySelectorAll(".tab-panel")) as HTMLDivElement[];
+const tabVariablesEl = document.getElementById("tabVariables") as HTMLButtonElement;
+const tabTextStylesEl = document.getElementById("tabTextStyles") as HTMLButtonElement;
+const tabColorStylesEl = document.getElementById("tabColorStyles") as HTMLButtonElement;
+const tabEffectStylesEl = document.getElementById("tabEffectStyles") as HTMLButtonElement;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state: {
@@ -286,16 +290,11 @@ function updateTabCounts() {
     ? state.items.filter((item) => item.occurrences > 1)
     : state.items;
 
-  const tabVariablesEl = document.getElementById("tabVariables");
-  const tabTextStylesEl = document.getElementById("tabTextStyles");
-  const tabColorStylesEl = document.getElementById("tabColorStyles");
-  const tabEffectStylesEl = document.getElementById("tabEffectStyles");
-
   const loc = state.locale;
-  if (tabVariablesEl) tabVariablesEl.textContent = `${t("tab_variables", loc)}${visibleItems.length > 0 ? ` (${visibleItems.length})` : ""}`;
-  if (tabTextStylesEl) tabTextStylesEl.textContent = `${t("tab_text_styles", loc)}${state.textStyles.length > 0 ? ` (${state.textStyles.length})` : ""}`;
-  if (tabColorStylesEl) tabColorStylesEl.textContent = `${t("tab_color_styles", loc)}${state.colorStyles.length > 0 ? ` (${state.colorStyles.length})` : ""}`;
-  if (tabEffectStylesEl) tabEffectStylesEl.textContent = `${t("tab_effect_styles", loc)}${state.effectStyles.length > 0 ? ` (${state.effectStyles.length})` : ""}`;
+  tabVariablesEl.textContent = `${t("tab_variables", loc)}${visibleItems.length > 0 ? ` (${visibleItems.length})` : ""}`;
+  tabTextStylesEl.textContent = `${t("tab_text_styles", loc)}${state.textStyles.length > 0 ? ` (${state.textStyles.length})` : ""}`;
+  tabColorStylesEl.textContent = `${t("tab_color_styles", loc)}${state.colorStyles.length > 0 ? ` (${state.colorStyles.length})` : ""}`;
+  tabEffectStylesEl.textContent = `${t("tab_effect_styles", loc)}${state.effectStyles.length > 0 ? ` (${state.effectStyles.length})` : ""}`;
 }
 
 function setActiveTab(tab: ActiveTab) {
@@ -734,20 +733,23 @@ function buildItemCard(item: UiItem) {
     item.type === "COLOR"
       ? (() => {
           const c = item.value as { r: number; g: number; b: number; a: number };
-          return `<div class="color-chip" style="background:rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${c.a})"></div>`;
+          return `<div class="color-chip" aria-hidden="true" style="background:rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${c.a})"></div>`;
         })()
       : "";
 
   const badgeClass = `badge-${item.group}`;
+  const loc = state.locale;
+  const groupLabel = escapeHtml(t(`group_${item.group}`, loc));
 
   const nameInput = document.createElement("input");
   nameInput.className = "item-name-input";
   nameInput.value = item.name;
-  nameInput.setAttribute("aria-label", t("aria_name_token", state.locale));
+  nameInput.setAttribute("aria-label", t("aria_name_token", loc));
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = item.include;
+  checkbox.setAttribute("aria-label", t("checkbox_include", loc));
   checkbox.style.cssText = "width:14px;height:14px;padding:0;cursor:pointer;";
 
   nameInput.addEventListener("input", (e: Event) => {
@@ -763,13 +765,13 @@ function buildItemCard(item: UiItem) {
   wrapper.innerHTML = `
     <div class="item-line">
       ${colorPreview}
-      <div class="item-main" id="item-main-${escapeHtml(item.id)}">
+      <div class="item-main">
         <div class="item-value">${escapeHtml(valueLabel)}</div>
-        <div class="item-occurrences">${item.occurrences}×</div>
+        <div class="item-occurrences" aria-hidden="true">${item.occurrences}×</div>
       </div>
     </div>
     <div class="item-meta">
-      <span class="badge ${badgeClass}">${item.group}</span>
+      <span class="badge ${badgeClass}">${groupLabel}</span>
       <span class="badge">${escapeHtml(item.category)}</span>
       <span style="font-size:11px;color:var(--figma-color-text-secondary);">${escapeHtml(sourceSummary)}</span>
     </div>
@@ -798,7 +800,7 @@ function buildTextStyleCard(item: UiTextStyle) {
       </div>
     </div>
     <div class="item-meta">
-      <span class="badge badge-style">TEXT STYLE</span>
+      <span class="badge badge-style">${escapeHtml(t("badge_text_style", state.locale).toUpperCase())}</span>
       <span class="badge">${escapeHtml(family)}</span>
       <span style="font-size:11px;color:var(--figma-color-text-secondary);">${escapeHtml(style)}</span>
     </div>
@@ -828,7 +830,7 @@ function buildColorStyleCard(item: UiColorStyle) {
       </div>
     </div>
     <div class="item-meta">
-      <span class="badge badge-style">COLOR STYLE</span>
+      <span class="badge badge-style">${escapeHtml(t("badge_color_style", state.locale).toUpperCase())}</span>
       <span class="badge">${escapeHtml(item.category)}</span>
     </div>
   `;
@@ -856,7 +858,7 @@ function buildEffectStyleCard(item: UiEffectStyle) {
       </div>
     </div>
     <div class="item-meta">
-      <span class="badge badge-style">EFFECT STYLE</span>
+      <span class="badge badge-style">${escapeHtml(t("badge_effect_style", state.locale).toUpperCase())}</span>
       <span class="badge">${escapeHtml(item.category)}</span>
     </div>
   `;
@@ -1001,7 +1003,7 @@ function requestSelectedCreation(applyToSelection: boolean) {
 
   persistPrefs();
   state.pendingCreateActions = targets.length;
-  setBusy(true, applyToSelection ? "create-apply" : "create", "Creating...");
+  setBusy(true, applyToSelection ? "create-apply" : "create", t("btn_create_loading", state.locale));
 
   targets.forEach((target) => {
     if (target === "variables") { requestVariableCreation(applyToSelection); return; }
@@ -1112,10 +1114,12 @@ function getSelectedActionTargets(): ActionTarget[] {
 }
 
 function renderTextStyleDiagnostics() {
+  const loc = state.locale;
+  const { textNodesFound, styledSegmentsRead, styleCandidatesGenerated } = state.textStyleDiagnostics;
   textStylesDiagnosticsEl.innerHTML = `
-    <span><strong>${state.textStyleDiagnostics.textNodesFound}</strong> text nodes</span>
-    <span><strong>${state.textStyleDiagnostics.styledSegmentsRead}</strong> segments</span>
-    <span><strong>${state.textStyleDiagnostics.styleCandidatesGenerated}</strong> candidates</span>
+    <span><strong>${textNodesFound}</strong> ${escapeHtml(t("diag_text_nodes", loc))}</span>
+    <span><strong>${styledSegmentsRead}</strong> ${escapeHtml(t("diag_segments", loc))}</span>
+    <span><strong>${styleCandidatesGenerated}</strong> ${escapeHtml(t("diag_candidates", loc))}</span>
   `;
 }
 
