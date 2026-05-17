@@ -8,6 +8,22 @@
         --plugin-accent: #007a7a;
         --plugin-accent-hover: #006262;
         --plugin-accent-subtle: rgba(0, 122, 122, 0.08);
+        --plugin-accent-fg: #ffffff;
+        --plugin-accent-spinner: rgba(255, 255, 255, 0.3);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --plugin-accent: #f0c24a;
+          --plugin-accent-hover: #d4a832;
+          --plugin-accent-subtle: rgba(240, 194, 74, 0.12);
+          --plugin-accent-fg: #1a1a1a;
+          --plugin-accent-spinner: rgba(0, 0, 0, 0.2);
+        }
+        @keyframes pulse {
+          0%   { box-shadow: 0 0 0 0   rgba(240, 194, 74, 0.4); }
+          100% { box-shadow: 0 0 0 7px rgba(240, 194, 74, 0); }
+        }
       }
 
       * {
@@ -257,7 +273,7 @@
       .step[data-state="active"] .step-dot {
         background: var(--plugin-accent);
         border-color: var(--plugin-accent);
-        color: #fff;
+        color: var(--plugin-accent-fg);
       }
 
       .step[data-state="done"] .step-dot {
@@ -383,7 +399,7 @@
         height: 12px;
         margin-top: -6px;
         border-radius: 999px;
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        border: 1.5px solid var(--plugin-accent-spinner);
         border-top-color: currentColor;
         animation: spin 0.7s linear infinite;
       }
@@ -391,7 +407,7 @@
       .btn-primary {
         background: var(--plugin-accent);
         border-color: transparent;
-        color: #fff;
+        color: var(--plugin-accent-fg);
       }
 
       .btn-primary:hover:not(:disabled) {
