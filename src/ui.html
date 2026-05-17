@@ -346,6 +346,17 @@
         gap: 8px;
       }
 
+      .step-panel--review {
+        gap: 0;
+        height: 100%;
+      }
+
+      .tab-panels-wrapper {
+        flex: 1;
+        overflow: hidden;
+        padding-top: 12px;
+      }
+
       /* ── Items list ── */
       .items {
         min-height: 140px;
@@ -651,18 +662,18 @@
 
       <!-- Stepper -->
       <div class="stepper">
-        <div class="step" data-step="1" data-state="active" id="step1Indicator">
-          <div class="step-dot">1</div>
+        <div class="step" role="button" tabindex="0" aria-label="Step 1: Configure" data-step="1" data-state="active" id="step1Indicator">
+          <div class="step-dot" aria-hidden="true">1</div>
           <span class="step-label">Configure</span>
         </div>
-        <div class="step-connector"></div>
-        <div class="step" data-step="2" data-state="pending" id="step2Indicator">
-          <div class="step-dot">2</div>
+        <div class="step-connector" aria-hidden="true"></div>
+        <div class="step" role="button" tabindex="0" aria-label="Step 2: Review" data-step="2" data-state="pending" id="step2Indicator">
+          <div class="step-dot" aria-hidden="true">2</div>
           <span class="step-label">Review</span>
         </div>
-        <div class="step-connector"></div>
-        <div class="step" data-step="3" data-state="pending" id="step3Indicator">
-          <div class="step-dot">3</div>
+        <div class="step-connector" aria-hidden="true"></div>
+        <div class="step" role="button" tabindex="0" aria-label="Step 3: Create" data-step="3" data-state="pending" id="step3Indicator">
+          <div class="step-dot" aria-hidden="true">3</div>
           <span class="step-label">Create</span>
         </div>
       </div>
@@ -697,7 +708,7 @@
 
           <div class="status-bar">
             <span class="status-dot" data-state="idle" id="statusDot"></span>
-            <span id="statusText">Ready</span>
+            <span id="statusText" aria-live="polite" aria-atomic="true">Ready</span>
           </div>
 
           <div class="scan-cta">
@@ -709,29 +720,29 @@
         </div>
 
         <!-- Step 2: Review -->
-        <div class="step-panel" data-step="2" id="stepPanel2" style="gap:0;height:100%;">
-          <nav class="tabs">
-            <button class="tab" data-tab="variables" data-active="true" id="tabVariables">Variables</button>
-            <button class="tab" data-tab="text-styles" id="tabTextStyles">Text styles</button>
-            <button class="tab" data-tab="color-styles" id="tabColorStyles">Color styles</button>
-            <button class="tab" data-tab="effect-styles" id="tabEffectStyles">Effect styles</button>
+        <div class="step-panel step-panel--review" data-step="2" id="stepPanel2">
+          <nav class="tabs" role="tablist" aria-label="Token types">
+            <button class="tab" role="tab" aria-selected="true" aria-controls="tabPanelVariables" data-tab="variables" data-active="true" id="tabVariables">Variables</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelTextStyles" data-tab="text-styles" id="tabTextStyles">Text styles</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelColorStyles" data-tab="color-styles" id="tabColorStyles">Color styles</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelEffectStyles" data-tab="effect-styles" id="tabEffectStyles">Effect styles</button>
           </nav>
 
-          <div style="flex:1;overflow:hidden;padding-top:12px;">
-            <div class="tab-panel" data-tab="variables" data-active="true" id="tabPanelVariables">
+          <div class="tab-panels-wrapper">
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabVariables" data-tab="variables" data-active="true" id="tabPanelVariables">
               <div class="items" id="items"></div>
             </div>
 
-            <div class="tab-panel" data-tab="text-styles" id="tabPanelTextStyles">
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabTextStyles" data-tab="text-styles" id="tabPanelTextStyles">
               <div class="diagnostics" id="textStylesDiagnostics"></div>
               <div class="items" id="textStyles"></div>
             </div>
 
-            <div class="tab-panel" data-tab="color-styles" id="tabPanelColorStyles">
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabColorStyles" data-tab="color-styles" id="tabPanelColorStyles">
               <div class="items" id="colorStyles"></div>
             </div>
 
-            <div class="tab-panel" data-tab="effect-styles" id="tabPanelEffectStyles">
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabEffectStyles" data-tab="effect-styles" id="tabPanelEffectStyles">
               <div class="items" id="effectStyles"></div>
             </div>
           </div>
@@ -781,7 +792,7 @@
 
     </div><!-- /app -->
 
-    <div class="toast" data-level="info" data-visible="false" id="toast"></div>
+    <div class="toast" role="status" aria-live="polite" aria-atomic="true" data-level="info" data-visible="false" id="toast"></div>
 
     <!-- UI_SCRIPT -->
   </body>

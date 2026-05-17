@@ -224,7 +224,9 @@ function updateTabCounts() {
 function setActiveTab(tab: ActiveTab) {
   state.activeTab = tab;
   tabButtonEls.forEach((btn) => {
-    btn.dataset.active = btn.dataset.tab === tab ? "true" : "false";
+    const isActive = btn.dataset.tab === tab;
+    btn.dataset.active = isActive ? "true" : "false";
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
   });
   tabPanelEls.forEach((panel) => {
     panel.dataset.active = panel.dataset.tab === tab ? "true" : "false";
@@ -246,10 +248,17 @@ backButtonEl.addEventListener("click", () => {
 
 // Step indicator navigation
 [step1IndicatorEl, step2IndicatorEl, step3IndicatorEl].forEach((el) => {
-  el.addEventListener("click", () => {
+  const activate = () => {
     const step = Number(el.dataset.step) as 1 | 2 | 3;
     if (step === 1 || hasResults()) {
       stepTo(step);
+    }
+  };
+  el.addEventListener("click", activate);
+  el.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      activate();
     }
   });
 });
@@ -319,13 +328,11 @@ windowToggleButtonEl.addEventListener("click", () => {
 });
 
 // ── Plugin message handler ────────────────────────────────────────────────────
-window.onmessage = (event: MessageEvent) => {
+window.addEventListener("message", (event: MessageEvent) => {
   const message = event.data.pluginMessage;
   if (!message) {
     return;
   }
-
-  console.log("[ui] message received:", message.type, message);
 
   if (message.type === "scan-result") {
     setBusy(false);
@@ -401,7 +408,6 @@ window.onmessage = (event: MessageEvent) => {
   }
 
   if (message.type === "action-feedback") {
-    console.log("[ui] feedback:", message.level, message.message);
     if (message.level !== "info") {
       state.pendingCreateActions = Math.max(0, state.pendingCreateActions - 1);
       if (state.pendingCreateActions === 0) {
@@ -415,7 +421,7 @@ window.onmessage = (event: MessageEvent) => {
       statusTextEl.textContent = "Something went wrong.";
     }
   }
-};
+});
 
 // ── Pref listeners ────────────────────────────────────────────────────────────
 repeatedOnlyEl.addEventListener("change", () => {
@@ -564,6 +570,7 @@ function buildItemCard(item: UiItem) {
   const nameInput = document.createElement("input");
   nameInput.className = "item-name-input";
   nameInput.value = item.name;
+  nameInput.setAttribute("aria-label", "Token name");
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -612,7 +619,7 @@ function buildTextStyleCard(item: UiTextStyle) {
   wrapper.innerHTML = `
     <div class="item-line">
       <div class="item-main style-main">
-        <input class="item-name-input" value="${escapeHtml(item.name)}" />
+        <input class="item-name-input" aria-label="Text style name" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(formatTextStyleValue(item))}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
       </div>
@@ -640,9 +647,9 @@ function buildColorStyleCard(item: UiColorStyle) {
 
   wrapper.innerHTML = `
     <div class="item-line">
-      <div class="color-chip" style="background:rgba(${Math.round(item.value.r * 255)},${Math.round(item.value.g * 255)},${Math.round(item.value.b * 255)},${item.value.a})"></div>
+      <div class="color-chip" style="background:rgba(${Math.round(item.value.r * 255)},${Math.round(item.value.g * 255)},${Math.round(item.value.b * 255)},${item.value.a})" aria-hidden="true"></div>
       <div class="item-main style-main">
-        <input class="item-name-input" value="${escapeHtml(item.name)}" />
+        <input class="item-name-input" aria-label="Color style name" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(rgbaLabel(item.value))}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
       </div>
@@ -670,7 +677,7 @@ function buildEffectStyleCard(item: UiEffectStyle) {
   wrapper.innerHTML = `
     <div class="item-line">
       <div class="item-main style-main">
-        <input class="item-name-input" value="${escapeHtml(item.name)}" />
+        <input class="item-name-input" aria-label="Effect style name" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(summarizeEffects(item.effects))}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
       </div>
@@ -991,9 +998,3 @@ function roundAlpha(value: number) {
   return Number(value.toFixed(3));
 }
 
-function formatTypes(values: string[]) {
-  return values.length > 0 ? values.join(", ") : "none";
-}
-
-// suppress unused warning — used in render()
-void formatTypes;

@@ -258,7 +258,6 @@ figma.ui.onmessage = async (
     | SavePrefsRequest
     | ResizeWindowRequest
 ) => {
-  console.log("[plugin] message received:", message.type);
   try {
     if (message.type === "scan-selection") {
       postFeedback("info", "Scanning current selection...");
@@ -341,9 +340,7 @@ function scheduleAutoScan() {
 }
 
 function postScanResult(silent = false) {
-  console.log("[plugin] postScanResult — selection length:", figma.currentPage.selection.length);
   const { items, colorStyles, effectStyles, textStyles, textStyleDiagnostics, selectedNodeTypes, acceptedNodeTypes } = scanSelection(silent);
-  console.log("[plugin] scan done — items:", items.length, "colorStyles:", colorStyles.length, "effectStyles:", effectStyles.length, "textStyles:", textStyles.length);
   const response: ScanPayload = {
     type: "scan-result",
     items,
@@ -770,9 +767,7 @@ function dtcgSizePath(category: string): string {
 }
 
 async function createVariables(payload: CreatePayload) {
-  console.log("[plugin] createVariables — total items:", payload.items.length, "collection:", payload.collectionName);
   const includedItems = payload.items.filter((item) => item.include);
-  console.log("[plugin] included items:", includedItems.length);
   if (includedItems.length === 0) {
     figma.notify("No items selected to create variables.");
     postFeedback("warning", "No checked items available to create variables.");
@@ -827,7 +822,7 @@ async function createVariables(payload: CreatePayload) {
     "success",
     `${created} variables created, ${reused} reused${payload.bindToSelection ? `, ${bound} bindings applied` : ""}.`,
   );
-  postCollectionsData();
+  await postCollectionsData();
 }
 
 type StyleVariableLookup = {
@@ -1197,9 +1192,19 @@ async function createEffectStyles(payload: CreateEffectStylesPayload) {
 }
 
 function bindVariablesToSelection(items: VariableDraft[], variableMap: Map<string, Variable>): number {
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const colorByRgbaKey = new Map(
+    items
+      .filter((item) => item.type === "COLOR")
+      .map((item) => {
+        const v = item.value as RgbaValue;
+        return [rgbaKey(v), item] as const;
+      })
+  );
+
   let boundCount = 0;
   for (const node of figma.currentPage.selection) {
-    boundCount += bindVariablesInNode(node, items, variableMap);
+    boundCount += bindVariablesInNode(node, itemById, colorByRgbaKey, variableMap);
   }
   return boundCount;
 }
@@ -1406,7 +1411,7 @@ function getTextStyleSegments(node: TextNode): Array<{ signature: TextStyleSigna
         fontSize: round(segment.fontSize),
         lineHeight: cloneLineHeight(segment.lineHeight),
         letterSpacing: cloneLetterSpacing(segment.letterSpacing),
-        paragraphSpacing: 0,
+        paragraphSpacing: round(node.paragraphSpacing),
         textCase: segment.textCase,
         textDecoration: segment.textDecoration
       },
@@ -1716,7 +1721,12 @@ async function applyTextStylesInNode(
   return applied;
 }
 
-function bindVariablesInNode(node: SceneNode, items: VariableDraft[], variableMap: Map<string, Variable>): number {
+function bindVariablesInNode(
+  node: SceneNode,
+  itemById: Map<string, VariableDraft>,
+  colorByRgbaKey: Map<string, VariableDraft>,
+  variableMap: Map<string, Variable>
+): number {
   let applied = 0;
 
   if ("fills" in node && Array.isArray(node.fills)) {
@@ -1728,7 +1738,7 @@ function bindVariablesInNode(node: SceneNode, items: VariableDraft[], variableMa
         return;
       }
 
-      const match = items.find((item) => item.type === "COLOR" && sameRgba(item.value as RgbaValue, rgbaFromPaint(paint)));
+      const match = colorByRgbaKey.get(rgbaKey(rgbaFromPaint(paint)));
       const variable = match ? variableMap.get(match.id) : null;
       if (!variable) {
         return;
@@ -1745,24 +1755,24 @@ function bindVariablesInNode(node: SceneNode, items: VariableDraft[], variableMa
   }
 
   if ("width" in node) {
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `width:${round(node.width)}`);
+    const match = itemById.get(`width:${round(node.width)}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, "width", variable)) applied += 1;
   }
 
   if ("height" in node) {
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `height:${round(node.height)}`);
+    const match = itemById.get(`height:${round(node.height)}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, "height", variable)) applied += 1;
   }
 
   if ("layoutMode" in node && node.layoutMode !== "NONE") {
-    applied += bindAutoLayoutVariables(node, items, variableMap);
+    applied += bindAutoLayoutVariables(node, itemById, variableMap);
   }
 
   if ("cornerRadius" in node && typeof node.cornerRadius === "number" && node.cornerRadius > 0) {
     const radius = round(node.cornerRadius);
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `radius:${radius}`);
+    const match = itemById.get(`radius:${radius}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && hasUniformCornerRadius(node)) {
       if (safeBind(node, "topLeftRadius", variable)) applied += 1;
@@ -1773,37 +1783,37 @@ function bindVariablesInNode(node: SceneNode, items: VariableDraft[], variableMa
   }
 
   if (node.type === "TEXT") {
-    applied += bindTextVariables(node, items, variableMap);
+    applied += bindTextVariables(node, itemById, variableMap);
   }
 
   if ("children" in node) {
     for (const child of node.children) {
-      applied += bindVariablesInNode(child, items, variableMap);
+      applied += bindVariablesInNode(child, itemById, colorByRgbaKey, variableMap);
     }
   }
 
   return applied;
 }
 
-function bindTextVariables(node: TextNode, items: VariableDraft[], variableMap: Map<string, Variable>): number {
+function bindTextVariables(node: TextNode, itemById: Map<string, VariableDraft>, variableMap: Map<string, Variable>): number {
   let applied = 0;
   const characters = node.characters.trim();
   if (characters) {
-    const match = items.find((item) => item.type === "STRING" && item.id === `text:${characters}`);
+    const match = itemById.get(`text:${characters}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, "characters", variable)) applied += 1;
   }
 
   if (typeof node.fontSize === "number") {
     const fontSize = round(node.fontSize);
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `font-size:${fontSize}`);
+    const match = itemById.get(`font-size:${fontSize}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, "fontSize", variable)) applied += 1;
   }
 
   if (node.lineHeight !== figma.mixed && node.lineHeight.unit === "PIXELS") {
     const value = round(node.lineHeight.value);
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `line-height:${value}`);
+    const match = itemById.get(`line-height:${value}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, "lineHeight", variable)) applied += 1;
   }
@@ -1813,14 +1823,14 @@ function bindTextVariables(node: TextNode, items: VariableDraft[], variableMap: 
 
 function bindAutoLayoutVariables(
   node: SceneNode & AutoLayoutMixin,
-  items: VariableDraft[],
+  itemById: Map<string, VariableDraft>,
   variableMap: Map<string, Variable>,
 ): number {
   let applied = 0;
 
   if (typeof node.itemSpacing === "number") {
     const spacing = round(node.itemSpacing);
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `gap:${spacing}`);
+    const match = itemById.get(`gap:${spacing}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, "itemSpacing", variable)) applied += 1;
   }
@@ -1837,7 +1847,7 @@ function bindAutoLayoutVariables(
       continue;
     }
     const value = round(rawValue);
-    const match = items.find((item) => item.type === "FLOAT" && item.id === `${prefix}:${value}`);
+    const match = itemById.get(`${prefix}:${value}`);
     const variable = match ? variableMap.get(match.id) : null;
     if (variable && safeBind(node, field, variable)) applied += 1;
   }
@@ -1881,7 +1891,6 @@ function postFeedback(level: FeedbackPayload["level"], message: string) {
 
 async function postCollectionsData() {
   const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
-  console.log("[plugin] collections found:", allCollections.map((c) => c.name));
   const payload: CollectionsLoadedPayload = {
     type: "collections-loaded",
     collections: allCollections.map((collection) => ({
