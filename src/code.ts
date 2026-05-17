@@ -8,6 +8,7 @@ import {
   slugify,
   type VariableKind,
 } from "./shared";
+import { type Locale, t } from "./i18n";
 
 type ItemGroup = "colors" | "texts" | "sizes";
 
@@ -208,6 +209,7 @@ type CreateEffectStylesPayload = {
 
 type ScanRequest = {
   type: "scan-selection";
+  locale?: Locale;
 };
 
 type LoadPrefsRequest = {
@@ -221,6 +223,7 @@ type SavePrefsRequest = {
     modeName: string;
     repeatedOnly: boolean;
     autoScanSelection: boolean;
+    locale?: Locale;
   };
 };
 
@@ -230,6 +233,7 @@ type ResizeWindowRequest = {
 };
 
 let autoScanSelection = false;
+let currentLocale: Locale = "en";
 let selectionScanTimer: number | undefined;
 const AUTO_SCAN_DEBOUNCE_MS = 180;
 const DEFAULT_UI_SIZE = { width: 560, height: 720 };
@@ -243,7 +247,7 @@ figma.showUI(__html__, {
 
 const backendReadyPayload: BackendReadyPayload = {
   type: "backend-ready",
-  message: "Plugin backend is ready."
+  message: t("backend_ready", currentLocale)
 };
 figma.ui.postMessage(backendReadyPayload);
 
@@ -260,31 +264,32 @@ figma.ui.onmessage = async (
 ) => {
   try {
     if (message.type === "scan-selection") {
-      postFeedback("info", "Scanning current selection...");
+      if (message.locale) currentLocale = message.locale;
+      postFeedback("info", t("backend_scanning", currentLocale));
       postScanResult();
       return;
     }
 
     if (message.type === "create-variables") {
-      postFeedback("info", "Creating variables...");
+      postFeedback("info", t("backend_creating_variables", currentLocale));
       await createVariables(message as CreatePayload);
       return;
     }
 
     if (message.type === "create-text-styles") {
-      postFeedback("info", "Creating text styles...");
+      postFeedback("info", t("backend_creating_text_styles", currentLocale));
       await createTextStyles(message);
       return;
     }
 
     if (message.type === "create-color-styles") {
-      postFeedback("info", "Creating color styles...");
+      postFeedback("info", t("backend_creating_color_styles", currentLocale));
       await createColorStyles(message);
       return;
     }
 
     if (message.type === "create-effect-styles") {
-      postFeedback("info", "Creating effect styles...");
+      postFeedback("info", t("backend_creating_effect_styles", currentLocale));
       await createEffectStyles(message);
       return;
     }
@@ -292,6 +297,7 @@ figma.ui.onmessage = async (
     if (message.type === "load-prefs") {
       const prefs = await figma.clientStorage.getAsync("ui-prefs");
       autoScanSelection = Boolean(prefs && prefs.autoScanSelection);
+      if (prefs?.locale) currentLocale = prefs.locale as Locale;
       figma.ui.postMessage({
         type: "prefs-loaded",
         prefs: prefs ?? {}
@@ -302,6 +308,7 @@ figma.ui.onmessage = async (
 
     if (message.type === "save-prefs") {
       autoScanSelection = message.prefs.autoScanSelection;
+      if (message.prefs.locale) currentLocale = message.prefs.locale;
       await figma.clientStorage.setAsync("ui-prefs", message.prefs);
       return;
     }
@@ -359,13 +366,19 @@ function postScanResult(silent = false) {
   postTextStylesResult(textStyles, textStyleDiagnostics);
 
   if (figma.currentPage.selection.length === 0) {
-    postFeedback("warning", "Select at least one frame, component, or text layer.");
+    postFeedback("warning", t("backend_select_layer", currentLocale));
     return;
   }
 
   postFeedback(
     "success",
-    `Scan complete. Found ${items.length} token candidates, ${colorStyles.length} color styles, ${effectStyles.length} effect styles, and ${textStyles.length} text style candidates from ${acceptedNodeTypes.length} accepted layer(s).`
+    t("backend_scan_complete", currentLocale, {
+      items: items.length,
+      colorStyles: colorStyles.length,
+      effectStyles: effectStyles.length,
+      textStyles: textStyles.length,
+      layers: acceptedNodeTypes.length
+    })
   );
 }
 
@@ -382,7 +395,7 @@ function scanSelection(silent = false): {
   const selectedNodeTypes = selection.map((node) => node.type);
   if (selection.length === 0) {
     if (!silent) {
-      figma.notify("Select at least one node.");
+      figma.notify(t("backend_select_node", currentLocale));
     }
     return {
       items: [],
@@ -397,7 +410,7 @@ function scanSelection(silent = false): {
 
   const validSelection = selection.filter(isAllowedSelectionNode);
   if (validSelection.length === 0) {
-    const warning = "Select at least one Group, Frame, or Section.";
+    const warning = t("backend_select_frame", currentLocale);
     if (!silent) {
       figma.notify(warning);
     }
@@ -414,7 +427,7 @@ function scanSelection(silent = false): {
   }
 
   if (validSelection.length !== selection.length) {
-    postFeedback("warning", "Only Groups, Frames, and Sections are scanned. Other selected layers were ignored.");
+    postFeedback("warning", t("backend_ignored_layers", currentLocale));
   }
 
   const items = new Map<string, RawItem>();
@@ -769,8 +782,8 @@ function dtcgSizePath(category: string): string {
 async function createVariables(payload: CreatePayload) {
   const includedItems = payload.items.filter((item) => item.include);
   if (includedItems.length === 0) {
-    figma.notify("No items selected to create variables.");
-    postFeedback("warning", "No checked items available to create variables.");
+    figma.notify(t("backend_no_items", currentLocale));
+    postFeedback("warning", t("backend_no_checked", currentLocale));
     return;
   }
 
@@ -816,11 +829,13 @@ async function createVariables(payload: CreatePayload) {
     bound = bindVariablesToSelection(includedItems, createdVariables);
   }
 
-  const bindMessage = payload.bindToSelection ? ` ${bound} binding(s) applied.` : "";
-  figma.notify(`${created} variables created and ${reused} reused in "${collectionName}".${bindMessage}`);
+  const bindMessage = payload.bindToSelection
+    ? t("backend_variables_bindings", currentLocale, { bound })
+    : "";
+  figma.notify(t("backend_variables_created", currentLocale, { created, reused, collection: collectionName }) + bindMessage);
   postFeedback(
     "success",
-    `${created} variables created, ${reused} reused${payload.bindToSelection ? `, ${bound} bindings applied` : ""}.`,
+    t("backend_variables_created", currentLocale, { created, reused, collection: collectionName }) + bindMessage
   );
   await postCollectionsData();
 }
@@ -1050,29 +1065,38 @@ function safeBindEffectVariable(effect: Effect, field: VariableBindableEffectFie
   }
 }
 
-function warnNoStyleCandidates(label: string) {
-  const message = `No ${label} found in the current selection.`;
+function warnNoStyleCandidates(labelKey: string) {
+  const label = t(labelKey, currentLocale);
+  const message = t("backend_no_style_candidates", currentLocale, { label });
   figma.notify(message);
   postFeedback("warning", message);
 }
 
 function finalizeStyleCreation(
-  label: "text styles" | "color styles" | "effect styles",
+  labelKey: "label_text_styles" | "label_color_styles" | "label_effect_styles",
   created: number,
   reused: number,
   applied: number,
   applyToSelection: boolean,
 ) {
-  const appliedSuffix = applyToSelection ? `, ${applied} ${label === "text styles" ? "text layers" : "layers"} updated` : "";
-  figma.notify(`${created} ${label} created and ${reused} reused${appliedSuffix}.`);
-  postFeedback("success", `${created} ${label} created, ${reused} reused${appliedSuffix}.`);
+  const label = t(labelKey, currentLocale);
+  let message: string;
+  if (!applyToSelection) {
+    message = t("backend_style_created", currentLocale, { created, label, reused });
+  } else if (labelKey === "label_text_styles") {
+    message = t("backend_style_created_text_applied", currentLocale, { created, label, reused, applied });
+  } else {
+    message = t("backend_style_created_layers_applied", currentLocale, { created, label, reused, applied });
+  }
+  figma.notify(message);
+  postFeedback("success", message);
 }
 
 async function createTextStyles(payload: CreateTextStylesPayload) {
   const candidates = collectTextStyleCandidates();
   const renamedStyles = getRenamedStyleMap(payload.styles);
   if (candidates.length === 0) {
-    warnNoStyleCandidates("typography styles");
+    warnNoStyleCandidates("label_typography_styles");
     return;
   }
 
@@ -1104,7 +1128,7 @@ async function createTextStyles(payload: CreateTextStylesPayload) {
     applied = await applyTextStylesToSelection(candidates, createdStyles);
   }
 
-  finalizeStyleCreation("text styles", created, reused, applied, payload.applyToSelection);
+  finalizeStyleCreation("label_text_styles", created, reused, applied, payload.applyToSelection);
   postTextStylesResult(candidates, {
     textNodesFound: candidates.reduce((acc, candidate) => acc + new Set(candidate.ranges.map((range) => range.nodeId)).size, 0),
     styledSegmentsRead: candidates.reduce((acc, candidate) => acc + candidate.ranges.length, 0),
@@ -1117,7 +1141,7 @@ async function createColorStyles(payload: CreateColorStylesPayload) {
   const candidates = collectColorStyleCandidatesFromNodes(figma.currentPage.selection.filter(isAllowedSelectionNode));
   const renamedStyles = getRenamedStyleMap(payload.styles);
   if (candidates.length === 0) {
-    warnNoStyleCandidates("color styles");
+    warnNoStyleCandidates("label_color_styles");
     return;
   }
 
@@ -1147,7 +1171,7 @@ async function createColorStyles(payload: CreateColorStylesPayload) {
     applied = await applyColorStylesToSelection(candidates, createdStyles);
   }
 
-  finalizeStyleCreation("color styles", created, reused, applied, payload.applyToSelection);
+  finalizeStyleCreation("label_color_styles", created, reused, applied, payload.applyToSelection);
   postColorStylesResult(candidates);
   postScanResult(true);
 }
@@ -1156,7 +1180,7 @@ async function createEffectStyles(payload: CreateEffectStylesPayload) {
   const candidates = collectEffectStyleCandidatesFromNodes(figma.currentPage.selection.filter(isAllowedSelectionNode));
   const renamedStyles = getRenamedStyleMap(payload.styles);
   if (candidates.length === 0) {
-    warnNoStyleCandidates("effect styles");
+    warnNoStyleCandidates("label_effect_styles");
     return;
   }
 
@@ -1186,7 +1210,7 @@ async function createEffectStyles(payload: CreateEffectStylesPayload) {
     applied = await applyEffectStylesToSelection(candidates, createdStyles);
   }
 
-  finalizeStyleCreation("effect styles", created, reused, applied, payload.applyToSelection);
+  finalizeStyleCreation("label_effect_styles", created, reused, applied, payload.applyToSelection);
   postEffectStylesResult(candidates);
   postScanResult(true);
 }

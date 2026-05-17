@@ -42,6 +42,29 @@
         font-weight: 600;
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .locale-select {
+        width: auto;
+        padding: 3px 6px;
+        font-size: 11px;
+        border-radius: 5px;
+        border: 1px solid var(--figma-color-border);
+        background: var(--figma-color-bg-secondary);
+        color: var(--figma-color-text-secondary);
+        cursor: pointer;
+      }
+
+      .locale-select:focus {
+        border-color: var(--plugin-accent);
+        outline: none;
+        color: var(--figma-color-text);
+      }
+
       /* ── Stepper ── */
       .stepper {
         display: flex;
@@ -657,24 +680,27 @@
       <!-- Header -->
       <header class="header">
         <span class="header-title">Selection to Variables</span>
-        <button class="btn-ghost" id="windowToggleButton" style="width:auto;padding:4px 8px;font-size:11px;">Maximize</button>
+        <div class="header-actions">
+          <select id="localeSelect" class="locale-select" aria-label="Language"></select>
+          <button class="btn-ghost" id="windowToggleButton" style="width:auto;padding:4px 8px;font-size:11px;" data-i18n="btn_maximize">Maximize</button>
+        </div>
       </header>
 
       <!-- Stepper -->
       <div class="stepper">
-        <div class="step" role="button" tabindex="0" aria-label="Step 1: Configure" data-step="1" data-state="active" id="step1Indicator">
+        <div class="step" role="button" tabindex="0" data-i18n-aria-label="step1_aria" aria-label="Step 1: Configure" data-step="1" data-state="active" id="step1Indicator">
           <div class="step-dot" aria-hidden="true">1</div>
-          <span class="step-label">Configure</span>
+          <span class="step-label" data-i18n="step_configure">Configure</span>
         </div>
         <div class="step-connector" aria-hidden="true"></div>
-        <div class="step" role="button" tabindex="0" aria-label="Step 2: Review" data-step="2" data-state="pending" id="step2Indicator">
+        <div class="step" role="button" tabindex="0" data-i18n-aria-label="step2_aria" aria-label="Step 2: Review" data-step="2" data-state="pending" id="step2Indicator">
           <div class="step-dot" aria-hidden="true">2</div>
-          <span class="step-label">Review</span>
+          <span class="step-label" data-i18n="step_review">Review</span>
         </div>
         <div class="step-connector" aria-hidden="true"></div>
-        <div class="step" role="button" tabindex="0" aria-label="Step 3: Create" data-step="3" data-state="pending" id="step3Indicator">
+        <div class="step" role="button" tabindex="0" data-i18n-aria-label="step3_aria" aria-label="Step 3: Create" data-step="3" data-state="pending" id="step3Indicator">
           <div class="step-dot" aria-hidden="true">3</div>
-          <span class="step-label">Create</span>
+          <span class="step-label" data-i18n="step_create">Create</span>
         </div>
       </div>
 
@@ -685,25 +711,25 @@
         <div class="step-panel" data-step="1" data-active="true" id="stepPanel1">
           <div class="row-2">
             <div class="field">
-              <label class="field-label" for="collectionSelect">Collection</label>
+              <label class="field-label" for="collectionSelect" data-i18n="field_collection">Collection</label>
               <select id="collectionSelect"></select>
-              <input class="hidden" id="newCollectionName" placeholder="Collection name" value="Selection Variables" />
+              <input class="hidden" id="newCollectionName" data-i18n-placeholder="placeholder_collection" placeholder="Collection name" value="Selection Variables" />
             </div>
             <div class="field">
-              <label class="field-label" for="modeSelect">Mode</label>
+              <label class="field-label" for="modeSelect" data-i18n="field_mode">Mode</label>
               <select id="modeSelect"></select>
-              <input class="hidden" id="newModeName" placeholder="Mode name" value="Base" />
+              <input class="hidden" id="newModeName" data-i18n-placeholder="placeholder_mode" placeholder="Mode name" value="Base" />
             </div>
           </div>
 
           <label class="toggle">
             <input id="repeatedOnly" type="checkbox" />
-            Show repeated tokens only
+            <span data-i18n="toggle_repeated_only">Show repeated tokens only</span>
           </label>
 
           <label class="toggle">
             <input id="autoScanSelection" type="checkbox" />
-            Auto-refresh on selection change
+            <span data-i18n="toggle_auto_scan">Auto-refresh on selection change</span>
           </label>
 
           <div class="status-bar">
@@ -712,8 +738,8 @@
           </div>
 
           <div class="scan-cta">
-            <p>Select Groups, Frames, or Sections in Figma, then scan to extract tokens.</p>
-            <button class="btn-primary" data-loading="false" id="scanButton" style="width:auto;padding:8px 20px;">Scan selection</button>
+            <p data-i18n="scan_cta_desc">Select Groups, Frames, or Sections in Figma, then scan to extract tokens.</p>
+            <button class="btn-primary" data-loading="false" id="scanButton" data-i18n="btn_scan" style="width:auto;padding:8px 20px;">Scan selection</button>
           </div>
 
           <p class="summary-text" id="summary"></p>
@@ -750,29 +776,29 @@
 
         <!-- Step 3: Create -->
         <div class="step-panel" data-step="3" id="stepPanel3">
-          <p class="summary-text">Choose what to create from the scanned tokens:</p>
+          <p class="summary-text" data-i18n="step3_desc">Choose what to create from the scanned tokens:</p>
 
           <div class="target-grid">
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="variables" checked />
-              Variables
+              <span data-i18n="tab_variables">Variables</span>
             </label>
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="text-styles" />
-              Text styles
+              <span data-i18n="tab_text_styles">Text styles</span>
             </label>
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="color-styles" />
-              Color styles
+              <span data-i18n="tab_color_styles">Color styles</span>
             </label>
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="effect-styles" />
-              Effect styles
+              <span data-i18n="tab_effect_styles">Effect styles</span>
             </label>
           </div>
 
           <div>
-            <button class="btn-ghost" id="exportButton" style="width:auto;">Export JSON</button>
+            <button class="btn-ghost" id="exportButton" data-i18n="btn_export" style="width:auto;">Export JSON</button>
           </div>
         </div>
 
@@ -781,12 +807,12 @@
       <!-- Footer -->
       <footer class="footer">
         <div class="footer-left">
-          <button class="btn-ghost" id="backButton" style="display:none;">← Back</button>
+          <button class="btn-ghost" id="backButton" data-i18n="btn_back" style="display:none;">← Back</button>
         </div>
         <div class="footer-right">
-          <button class="btn-ghost" id="createButton" data-loading="false" style="display:none;">Create</button>
-          <button class="btn-primary" id="nextButton">Next →</button>
-          <button class="btn-primary" id="createApplyButton" data-loading="false" style="display:none;">Create and apply</button>
+          <button class="btn-ghost" id="createButton" data-loading="false" data-i18n="btn_create" style="display:none;">Create</button>
+          <button class="btn-primary" id="nextButton" data-i18n="btn_next">Next →</button>
+          <button class="btn-primary" id="createApplyButton" data-loading="false" data-i18n="btn_create_apply" style="display:none;">Create and apply</button>
         </div>
       </footer>
 

@@ -1,4 +1,5 @@
 import { buildExportFilename, buildTokenTree } from "./export-tokens";
+import { type Locale, SUPPORTED_LOCALES, LOCALE_LABELS, t } from "./i18n";
 
 type UiItem = {
   id: string;
@@ -49,6 +50,7 @@ type UiPrefs = {
   modeName: string;
   repeatedOnly: boolean;
   autoScanSelection: boolean;
+  locale: Locale;
 };
 
 type UiCollectionOption = {
@@ -83,6 +85,7 @@ const scanButtonEl = document.getElementById("scanButton") as HTMLButtonElement;
 const createButtonEl = document.getElementById("createButton") as HTMLButtonElement;
 const createApplyButtonEl = document.getElementById("createApplyButton") as HTMLButtonElement;
 const windowToggleButtonEl = document.getElementById("windowToggleButton") as HTMLButtonElement;
+const localeSelectEl = document.getElementById("localeSelect") as HTMLSelectElement;
 const toastEl = document.getElementById("toast") as HTMLDivElement;
 const statusDotEl = document.getElementById("statusDot") as HTMLSpanElement;
 const statusTextEl = document.getElementById("statusText") as HTMLSpanElement;
@@ -119,6 +122,7 @@ const state: {
   isMaximized: boolean;
   currentStep: 1 | 2 | 3;
   activeTab: ActiveTab;
+  locale: Locale;
 } = {
   items: [],
   colorStyles: [],
@@ -140,8 +144,49 @@ const state: {
   forcedShowAll: false,
   isMaximized: false,
   currentStep: 1,
-  activeTab: "variables"
+  activeTab: "variables",
+  locale: "en"
 };
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+function detectLocale(): Locale {
+  const lang = navigator.language.toLowerCase();
+  if (lang === "pt-br" || lang.startsWith("pt")) return "pt-BR";
+  if (lang.startsWith("es")) return "es";
+  return "en";
+}
+
+function applyTranslations(locale: Locale) {
+  document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n!, locale);
+  });
+  document.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder!, locale);
+  });
+  document.querySelectorAll<HTMLElement>("[data-i18n-aria-label]").forEach((el) => {
+    el.setAttribute("aria-label", t(el.dataset.i18nAriaLabel!, locale));
+  });
+}
+
+function setLocale(locale: Locale) {
+  state.locale = locale;
+  localeSelectEl.value = locale;
+  applyTranslations(locale);
+  render();
+}
+
+// Init locale select options
+SUPPORTED_LOCALES.forEach((loc) => {
+  const option = document.createElement("option");
+  option.value = loc;
+  option.textContent = LOCALE_LABELS[loc];
+  localeSelectEl.appendChild(option);
+});
+
+localeSelectEl.addEventListener("change", () => {
+  setLocale(localeSelectEl.value as Locale);
+  persistPrefs();
+});
 
 // ── Wizard navigation ─────────────────────────────────────────────────────────
 function stepTo(n: 1 | 2 | 3) {
@@ -215,10 +260,11 @@ function updateTabCounts() {
   const tabColorStylesEl = document.getElementById("tabColorStyles");
   const tabEffectStylesEl = document.getElementById("tabEffectStyles");
 
-  if (tabVariablesEl) tabVariablesEl.textContent = `Variables${visibleItems.length > 0 ? ` (${visibleItems.length})` : ""}`;
-  if (tabTextStylesEl) tabTextStylesEl.textContent = `Text styles${state.textStyles.length > 0 ? ` (${state.textStyles.length})` : ""}`;
-  if (tabColorStylesEl) tabColorStylesEl.textContent = `Color styles${state.colorStyles.length > 0 ? ` (${state.colorStyles.length})` : ""}`;
-  if (tabEffectStylesEl) tabEffectStylesEl.textContent = `Effect styles${state.effectStyles.length > 0 ? ` (${state.effectStyles.length})` : ""}`;
+  const loc = state.locale;
+  if (tabVariablesEl) tabVariablesEl.textContent = `${t("tab_variables", loc)}${visibleItems.length > 0 ? ` (${visibleItems.length})` : ""}`;
+  if (tabTextStylesEl) tabTextStylesEl.textContent = `${t("tab_text_styles", loc)}${state.textStyles.length > 0 ? ` (${state.textStyles.length})` : ""}`;
+  if (tabColorStylesEl) tabColorStylesEl.textContent = `${t("tab_color_styles", loc)}${state.colorStyles.length > 0 ? ` (${state.colorStyles.length})` : ""}`;
+  if (tabEffectStylesEl) tabEffectStylesEl.textContent = `${t("tab_effect_styles", loc)}${state.effectStyles.length > 0 ? ` (${state.effectStyles.length})` : ""}`;
 }
 
 function setActiveTab(tab: ActiveTab) {
@@ -271,9 +317,9 @@ tabButtonEls.forEach((btn) => {
 });
 
 scanButtonEl.addEventListener("click", () => {
-  setBusy(true, "scan", "Reading selection...");
+  setBusy(true, "scan", t("backend_scanning", state.locale));
   summaryEl.textContent = "";
-  sendPluginMessage({ type: "scan-selection" });
+  sendPluginMessage({ type: "scan-selection", locale: state.locale });
 });
 
 createButtonEl.addEventListener("click", () => {
@@ -289,7 +335,7 @@ exportButtonEl.addEventListener("click", () => {
   const exportItems = state.items.filter((item) => item.include);
 
   if (exportItems.length === 0) {
-    showToast("warning", "No checked items available to export.");
+    showToast("warning", t("toast_no_export", state.locale));
     return;
   }
 
@@ -315,7 +361,7 @@ exportButtonEl.addEventListener("click", () => {
   link.remove();
 
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast("success", `${exportItems.length} items exported to ${filename}.`);
+  showToast("success", t("toast_exported", state.locale, { count: exportItems.length, filename }));
 });
 
 windowToggleButtonEl.addEventListener("click", () => {
@@ -353,7 +399,7 @@ window.addEventListener("message", (event: MessageEvent) => {
 
     if (!hasRepeatedItems && repeatedOnlyEl.checked) {
       repeatedOnlyEl.checked = false;
-      showToast("info", "No repeated tokens found. Showing all scanned tokens.");
+      showToast("info", t("toast_no_repeated", state.locale));
     }
 
     render();
@@ -396,13 +442,13 @@ window.addEventListener("message", (event: MessageEvent) => {
   }
 
   if (message.type === "backend-ready") {
-    showToast("info", "Plugin ready.");
+    showToast("info", t("toast_plugin_ready", state.locale));
     return;
   }
 
   if (message.type === "selection-updated") {
     if (message.selectionCount === 0 && state.items.length === 0) {
-      statusTextEl.textContent = "Nothing selected.";
+      statusTextEl.textContent = t("status_nothing_selected", state.locale);
     }
     return;
   }
@@ -418,7 +464,7 @@ window.addEventListener("message", (event: MessageEvent) => {
     }
     showToast(message.level as ToastLevel, message.message as string);
     if (message.level === "error") {
-      statusTextEl.textContent = "Something went wrong.";
+      statusTextEl.textContent = t("status_something_wrong", state.locale);
     }
   }
 });
@@ -451,6 +497,9 @@ actionTargetEls.forEach((input) => {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+state.locale = detectLocale();
+localeSelectEl.value = state.locale;
+applyTranslations(state.locale);
 sendPluginMessage({ type: "load-prefs" });
 syncWindowToggleLabel();
 syncCreateActions();
@@ -462,12 +511,13 @@ function render() {
   updateTabCounts();
 
   if (!hasResults()) {
-    itemsEl.innerHTML = '<p class="empty">No tokens found. Select Groups, Frames, or Sections then scan.</p>';
-    colorStylesEl.innerHTML = '<p class="empty">No color styles detected yet.</p>';
-    effectStylesEl.innerHTML = '<p class="empty">No effect styles detected yet.</p>';
-    textStylesEl.innerHTML = '<p class="empty">No text styles detected yet.</p>';
+    const loc = state.locale;
+    itemsEl.innerHTML = `<p class="empty">${t("empty_tokens", loc)}</p>`;
+    colorStylesEl.innerHTML = `<p class="empty">${t("empty_color_styles_pending", loc)}</p>`;
+    effectStylesEl.innerHTML = `<p class="empty">${t("empty_effect_styles_pending", loc)}</p>`;
+    textStylesEl.innerHTML = `<p class="empty">${t("empty_text_styles_pending", loc)}</p>`;
     summaryEl.textContent = state.selectionCount > 0
-      ? `${state.selectionCount} node(s) scanned — no token candidates found.`
+      ? t("summary_no_tokens", loc, { nodes: state.selectionCount })
       : "";
     syncStepUI();
     return;
@@ -482,16 +532,24 @@ function render() {
     return acc;
   }, {});
 
+  const loc = state.locale;
   const modeLabel = state.forcedShowAll
-    ? "No repeated tokens — showing all."
+    ? t("summary_no_repeated_all", loc)
     : repeatedOnlyEl.checked
-      ? "Repeated tokens only."
-      : "All tokens.";
+      ? t("summary_repeated_only", loc)
+      : t("summary_all_tokens", loc);
 
-  summaryEl.textContent = `${state.selectionCount} node(s) · ${visibleItems.length} token(s): ${counts.colors || 0} colors, ${counts.texts || 0} texts, ${counts.sizes || 0} sizes. ${modeLabel}`;
+  summaryEl.textContent = t("summary_scanned", loc, {
+    nodes: state.selectionCount,
+    tokens: visibleItems.length,
+    colors: counts.colors || 0,
+    texts: counts.texts || 0,
+    sizes: counts.sizes || 0,
+    mode: modeLabel
+  });
 
   if (visibleItems.length === 0) {
-    itemsEl.innerHTML = '<p class="empty">No repeated tokens found.</p>';
+    itemsEl.innerHTML = `<p class="empty">${t("empty_repeated", loc)}</p>`;
   } else {
     itemsEl.innerHTML = "";
     const grouped = groupItemsByType(visibleItems);
@@ -502,21 +560,21 @@ function render() {
 
   colorStylesEl.innerHTML = "";
   if (state.colorStyles.length === 0) {
-    colorStylesEl.innerHTML = '<p class="empty">No color styles detected.</p>';
+    colorStylesEl.innerHTML = `<p class="empty">${t("empty_color_styles", loc)}</p>`;
   } else {
     state.colorStyles.forEach((item) => colorStylesEl.appendChild(buildColorStyleCard(item)));
   }
 
   effectStylesEl.innerHTML = "";
   if (state.effectStyles.length === 0) {
-    effectStylesEl.innerHTML = '<p class="empty">No effect styles detected.</p>';
+    effectStylesEl.innerHTML = `<p class="empty">${t("empty_effect_styles", loc)}</p>`;
   } else {
     state.effectStyles.forEach((item) => effectStylesEl.appendChild(buildEffectStyleCard(item)));
   }
 
   textStylesEl.innerHTML = "";
   if (state.textStyles.length === 0) {
-    textStylesEl.innerHTML = '<p class="empty">No text styles detected.</p>';
+    textStylesEl.innerHTML = `<p class="empty">${t("empty_text_styles", loc)}</p>`;
   } else {
     state.textStyles.forEach((item) => textStylesEl.appendChild(buildTextStyleCard(item)));
   }
@@ -570,7 +628,7 @@ function buildItemCard(item: UiItem) {
   const nameInput = document.createElement("input");
   nameInput.className = "item-name-input";
   nameInput.value = item.name;
-  nameInput.setAttribute("aria-label", "Token name");
+  nameInput.setAttribute("aria-label", t("aria_name_token", state.locale));
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -619,7 +677,7 @@ function buildTextStyleCard(item: UiTextStyle) {
   wrapper.innerHTML = `
     <div class="item-line">
       <div class="item-main style-main">
-        <input class="item-name-input" aria-label="Text style name" value="${escapeHtml(item.name)}" />
+        <input class="item-name-input" aria-label="${escapeHtml(t("aria_name_text_style", state.locale))}" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(formatTextStyleValue(item))}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
       </div>
@@ -649,7 +707,7 @@ function buildColorStyleCard(item: UiColorStyle) {
     <div class="item-line">
       <div class="color-chip" style="background:rgba(${Math.round(item.value.r * 255)},${Math.round(item.value.g * 255)},${Math.round(item.value.b * 255)},${item.value.a})" aria-hidden="true"></div>
       <div class="item-main style-main">
-        <input class="item-name-input" aria-label="Color style name" value="${escapeHtml(item.name)}" />
+        <input class="item-name-input" aria-label="${escapeHtml(t("aria_name_color_style", state.locale))}" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(rgbaLabel(item.value))}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
       </div>
@@ -677,7 +735,7 @@ function buildEffectStyleCard(item: UiEffectStyle) {
   wrapper.innerHTML = `
     <div class="item-line">
       <div class="item-main style-main">
-        <input class="item-name-input" aria-label="Effect style name" value="${escapeHtml(item.name)}" />
+        <input class="item-name-input" aria-label="${escapeHtml(t("aria_name_effect_style", state.locale))}" value="${escapeHtml(item.name)}" />
         <div class="item-value">${escapeHtml(summarizeEffects(item.effects))}</div>
         <div class="item-occurrences">${item.occurrences}×</div>
       </div>
@@ -715,7 +773,8 @@ function persistPrefs() {
       collectionName: getCollectionName(),
       modeName: getModeName(),
       repeatedOnly: repeatedOnlyEl.checked,
-      autoScanSelection: autoScanSelectionEl.checked
+      autoScanSelection: autoScanSelectionEl.checked,
+      locale: state.locale
     } as UiPrefs
   });
 }
@@ -729,23 +788,24 @@ function setBusy(busy: boolean, action: "scan" | "create" | "create-apply" | nul
   exportButtonEl.disabled = busy;
   actionTargetEls.forEach((input) => { input.disabled = busy; });
 
+  const loc = state.locale;
   scanButtonEl.dataset.loading = busy && action === "scan" ? "true" : "false";
   createButtonEl.dataset.loading = busy && action === "create" ? "true" : "false";
   createApplyButtonEl.dataset.loading = busy && action === "create-apply" ? "true" : "false";
 
-  scanButtonEl.textContent = busy && action === "scan" ? "Scanning..." : "Scan selection";
-  createButtonEl.textContent = busy && action === "create" ? "Creating..." : "Create";
-  createApplyButtonEl.textContent = busy && action === "create-apply" ? "Creating..." : "Create and apply";
+  scanButtonEl.textContent = busy && action === "scan" ? t("btn_scan_loading", loc) : t("btn_scan", loc);
+  createButtonEl.textContent = busy && action === "create" ? t("btn_create_loading", loc) : t("btn_create", loc);
+  createApplyButtonEl.textContent = busy && action === "create-apply" ? t("btn_create_apply_loading", loc) : t("btn_create_apply", loc);
 
   if (busy) {
     statusDotEl.dataset.state = "busy";
-    statusTextEl.textContent = label || "Working...";
+    statusTextEl.textContent = label || t("status_ready", loc);
     nextButtonEl.disabled = true;
     return;
   }
 
   statusDotEl.dataset.state = "idle";
-  statusTextEl.textContent = "Ready";
+  statusTextEl.textContent = t("status_ready", state.locale);
   state.pendingCreateActions = 0;
   syncCreateActions();
   syncStepUI();
@@ -767,7 +827,7 @@ function showToast(level: ToastLevel, message: string) {
     toastEl.dataset.visible = "false";
     if (!state.busy) {
       statusDotEl.dataset.state = "idle";
-      statusTextEl.textContent = "Ready";
+      statusTextEl.textContent = t("status_ready", state.locale);
     }
     state.toastTimer = null;
   }, 3200);
@@ -778,6 +838,9 @@ function applyPrefs(prefs: Partial<UiPrefs>) {
   if (typeof prefs.modeName === "string") applyModePref(prefs.modeName);
   if (typeof prefs.repeatedOnly === "boolean") repeatedOnlyEl.checked = prefs.repeatedOnly;
   if (typeof prefs.autoScanSelection === "boolean") autoScanSelectionEl.checked = prefs.autoScanSelection;
+  if (prefs.locale && SUPPORTED_LOCALES.includes(prefs.locale)) {
+    setLocale(prefs.locale);
+  }
 }
 
 function requestVariableCreation(bindToSelection: boolean) {
@@ -817,7 +880,7 @@ function requestEffectStyleCreation(applyToSelection: boolean) {
 function requestSelectedCreation(applyToSelection: boolean) {
   const targets = getSelectedActionTargets();
   if (targets.length === 0) {
-    showToast("warning", "Select at least one output type first.");
+    showToast("warning", t("toast_select_output", state.locale));
     return;
   }
 
@@ -854,7 +917,7 @@ function renderCollectionOptions() {
 
   const newOption = document.createElement("option");
   newOption.value = "__new__";
-  newOption.textContent = "Create new collection...";
+  newOption.textContent = t("option_new_collection", state.locale);
   collectionSelectEl.appendChild(newOption);
 
   applyCollectionPref(currentCollection || newCollectionNameEl.value || "Selection Variables");
@@ -875,7 +938,7 @@ function renderModeOptions() {
 
   const newOption = document.createElement("option");
   newOption.value = "__new__";
-  newOption.textContent = "Create new mode...";
+  newOption.textContent = t("option_new_mode", state.locale);
   modeSelectEl.appendChild(newOption);
 
   applyModePref(currentMode || newModeNameEl.value || "Base");
@@ -955,7 +1018,7 @@ function sendPluginMessage(message: Record<string, unknown>) {
 }
 
 function syncWindowToggleLabel() {
-  windowToggleButtonEl.textContent = state.isMaximized ? "Restore" : "Maximize";
+  windowToggleButtonEl.textContent = state.isMaximized ? t("btn_restore", state.locale) : t("btn_maximize", state.locale);
 }
 
 function getValueLabel(item: UiItem) {
@@ -967,9 +1030,9 @@ function getValueLabel(item: UiItem) {
 }
 
 function getSourceSummary(sources: string[]) {
-  if (sources.length === 0) return "No sources";
+  if (sources.length === 0) return t("source_none", state.locale);
   if (sources.length === 1) return sources[0];
-  return `${sources[0]} +${sources.length - 1} more`;
+  return `${sources[0]} ${t("source_more", state.locale, { count: sources.length - 1 })}`;
 }
 
 function formatTextStyleValue(item: UiTextStyle) {
