@@ -169,12 +169,13 @@
         color: var(--figma-color-text);
         font: inherit;
         outline: none;
-        transition: border-color 120ms;
+        transition: border-color 120ms, box-shadow 120ms;
       }
 
       input:focus,
       select:focus {
         border-color: var(--plugin-accent);
+        box-shadow: 0 0 0 2px var(--plugin-accent-subtle);
       }
 
       .row-2 {
@@ -463,6 +464,7 @@
       .item-name-input:focus {
         border-color: var(--plugin-accent);
         outline: none;
+        box-shadow: 0 0 0 2px var(--plugin-accent-subtle);
       }
 
       .item-value,
@@ -682,7 +684,7 @@
         <span class="header-title">Selection to Variables</span>
         <div class="header-actions">
           <select id="localeSelect" class="locale-select" aria-label="Language"></select>
-          <button class="btn-ghost" id="windowToggleButton" style="width:auto;padding:4px 8px;font-size:11px;" data-i18n="btn_maximize">Maximize</button>
+          <button class="btn-ghost" id="windowToggleButton" style="width:auto;padding:4px 8px;font-size:11px;">Maximize</button>
         </div>
       </header>
 
@@ -733,13 +735,13 @@
           </label>
 
           <div class="status-bar">
-            <span class="status-dot" data-state="idle" id="statusDot"></span>
+            <span class="status-dot" data-state="idle" id="statusDot" aria-hidden="true"></span>
             <span id="statusText" aria-live="polite" aria-atomic="true">Ready</span>
           </div>
 
           <div class="scan-cta">
             <p data-i18n="scan_cta_desc">Select Groups, Frames, or Sections in Figma, then scan to extract tokens.</p>
-            <button class="btn-primary" data-loading="false" id="scanButton" data-i18n="btn_scan" style="width:auto;padding:8px 20px;">Scan selection</button>
+            <button class="btn-primary" data-loading="false" id="scanButton" style="width:auto;padding:8px 20px;">Scan selection</button>
           </div>
 
           <p class="summary-text" id="summary"></p>
@@ -810,9 +812,9 @@
           <button class="btn-ghost" id="backButton" data-i18n="btn_back" style="display:none;">← Back</button>
         </div>
         <div class="footer-right">
-          <button class="btn-ghost" id="createButton" data-loading="false" data-i18n="btn_create" style="display:none;">Create</button>
+          <button class="btn-ghost" id="createButton" data-loading="false" style="display:none;">Create</button>
           <button class="btn-primary" id="nextButton" data-i18n="btn_next">Next →</button>
-          <button class="btn-primary" id="createApplyButton" data-loading="false" data-i18n="btn_create_apply" style="display:none;">Create and apply</button>
+          <button class="btn-primary" id="createApplyButton" data-loading="false" style="display:none;">Create and apply</button>
         </div>
       </footer>
 

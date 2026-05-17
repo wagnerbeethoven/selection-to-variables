@@ -84,6 +84,11 @@ const messages: Record<Locale, Record<string, string>> = {
     toast_no_repeated: "No repeated tokens found. Showing all scanned tokens.",
     toast_plugin_ready: "Plugin ready.",
 
+    // Group headers
+    group_colors: "Colors",
+    group_texts: "Texts",
+    group_sizes: "Sizes",
+
     // Source summary
     source_none: "No sources",
     source_more: "+{count} more",
@@ -186,6 +191,10 @@ const messages: Record<Locale, Record<string, string>> = {
     toast_no_repeated: "Nenhum token repetido. Exibindo todos.",
     toast_plugin_ready: "Plugin pronto.",
 
+    group_colors: "Cores",
+    group_texts: "Textos",
+    group_sizes: "Tamanhos",
+
     source_none: "Sem fontes",
     source_more: "+{count} mais",
 
@@ -283,6 +292,10 @@ const messages: Record<Locale, Record<string, string>> = {
     toast_select_output: "Selecciona al menos un tipo de salida.",
     toast_no_repeated: "No se encontraron tokens repetidos. Mostrando todos.",
     toast_plugin_ready: "Plugin listo.",
+
+    group_colors: "Colores",
+    group_texts: "Textos",
+    group_sizes: "Tamaños",
 
     source_none: "Sin fuentes",
     source_more: "+{count} más",

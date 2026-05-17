@@ -171,7 +171,14 @@ function applyTranslations(locale: Locale) {
 function setLocale(locale: Locale) {
   state.locale = locale;
   localeSelectEl.value = locale;
+  document.documentElement.lang = locale === "pt-BR" ? "pt" : locale;
   applyTranslations(locale);
+  syncWindowToggleLabel();
+  if (!state.busy) {
+    scanButtonEl.textContent = t("btn_scan", locale);
+    createButtonEl.textContent = t("btn_create", locale);
+    createApplyButtonEl.textContent = t("btn_create_apply", locale);
+  }
   render();
 }
 
@@ -225,6 +232,19 @@ function syncStepUI() {
     } else {
       el.dataset.state = "pending";
       dot.textContent = String(step);
+    }
+
+    if (step === currentStep) {
+      el.setAttribute("aria-current", "step");
+    } else {
+      el.removeAttribute("aria-current");
+    }
+
+    const locked = step > 1 && !hasResults();
+    if (locked) {
+      el.setAttribute("aria-disabled", "true");
+    } else {
+      el.removeAttribute("aria-disabled");
     }
   });
 
@@ -310,9 +330,31 @@ backButtonEl.addEventListener("click", () => {
 });
 
 // Tabs
-tabButtonEls.forEach((btn) => {
+tabButtonEls.forEach((btn, index) => {
   btn.addEventListener("click", () => {
     setActiveTab(btn.dataset.tab as ActiveTab);
+    btn.focus();
+  });
+  btn.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const next = tabButtonEls[(index + 1) % tabButtonEls.length];
+      next.focus();
+      setActiveTab(next.dataset.tab as ActiveTab);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prev = tabButtonEls[(index - 1 + tabButtonEls.length) % tabButtonEls.length];
+      prev.focus();
+      setActiveTab(prev.dataset.tab as ActiveTab);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      tabButtonEls[0].focus();
+      setActiveTab(tabButtonEls[0].dataset.tab as ActiveTab);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      tabButtonEls[tabButtonEls.length - 1].focus();
+      setActiveTab(tabButtonEls[tabButtonEls.length - 1].dataset.tab as ActiveTab);
+    }
   });
 });
 
@@ -498,6 +540,7 @@ actionTargetEls.forEach((input) => {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 state.locale = detectLocale();
+document.documentElement.lang = state.locale === "pt-BR" ? "pt" : state.locale;
 localeSelectEl.value = state.locale;
 applyTranslations(state.locale);
 sendPluginMessage({ type: "load-prefs" });
@@ -553,9 +596,9 @@ function render() {
   } else {
     itemsEl.innerHTML = "";
     const grouped = groupItemsByType(visibleItems);
-    renderGroup("Colors", "colors", grouped.colors);
-    renderGroup("Texts", "texts", grouped.texts);
-    renderGroup("Sizes", "sizes", grouped.sizes);
+    renderGroup("colors", grouped.colors);
+    renderGroup("texts", grouped.texts);
+    renderGroup("sizes", grouped.sizes);
   }
 
   colorStylesEl.innerHTML = "";
@@ -583,21 +626,39 @@ function render() {
 }
 
 // ── Group render ──────────────────────────────────────────────────────────────
-function renderGroup(title: string, groupKey: "colors" | "texts" | "sizes", items: UiItem[]) {
+function renderGroup(groupKey: "colors" | "texts" | "sizes", items: UiItem[]) {
   if (items.length === 0) return;
+
+  const titleMap: Record<"colors" | "texts" | "sizes", string> = {
+    colors: t("group_colors", state.locale),
+    texts: t("group_texts", state.locale),
+    sizes: t("group_sizes", state.locale),
+  };
+  const title = titleMap[groupKey];
+  const bodyId = `group-body-${groupKey}`;
 
   const section = document.createElement("div");
   section.className = "group-section";
 
   const header = document.createElement("div");
   header.className = "group-header";
-  header.innerHTML = `<span>${title}</span><span style="font-weight:400;font-size:10px;">${items.length}</span>`;
+  header.setAttribute("role", "button");
+  header.setAttribute("tabindex", "0");
+  header.setAttribute("aria-expanded", "true");
+  header.setAttribute("aria-controls", bodyId);
+  header.innerHTML = `<span>${escapeHtml(title)}</span><span style="font-weight:400;font-size:10px;" aria-hidden="true">${items.length}</span>`;
 
   const body = document.createElement("div");
   body.className = "group-body";
+  body.id = bodyId;
 
-  header.addEventListener("click", () => {
-    body.classList.toggle("collapsed");
+  const toggle = () => {
+    const collapsed = body.classList.toggle("collapsed");
+    header.setAttribute("aria-expanded", String(!collapsed));
+  };
+  header.addEventListener("click", toggle);
+  header.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
   });
 
   items.forEach((item) => body.appendChild(buildItemCard(item)));
