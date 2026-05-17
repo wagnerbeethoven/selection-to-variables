@@ -89,6 +89,15 @@ const messages: Record<Locale, Record<string, string>> = {
     group_texts: "Texts",
     group_sizes: "Sizes",
 
+    // What's new
+    whats_new_title: "What's new in v{version}",
+    whats_new_i18n: "Interface now available in English, Portuguese (BR), and Spanish — auto-detected from your device",
+    whats_new_wizard: "New 3-step wizard: Configure → Review → Create",
+    whats_new_about: "About dialog with plugin info and creator links",
+    whats_new_dark_mode: "Accessible accent colors per theme: teal in light mode, amber in dark mode",
+    whats_new_a11y: "Full keyboard navigation, ARIA roles, screen reader support, and visible focus rings",
+    whats_new_perf: "Faster variable binding on large selections (O(n) Map lookups)",
+
     // About dialog
     about_btn: "About",
     about_title: "About this plugin",
@@ -206,6 +215,14 @@ const messages: Record<Locale, Record<string, string>> = {
     group_texts: "Textos",
     group_sizes: "Tamanhos",
 
+    whats_new_title: "Novidades na v{version}",
+    whats_new_i18n: "Interface disponível em inglês, português (BR) e espanhol — detectado automaticamente pelo dispositivo",
+    whats_new_wizard: "Novo assistente de 3 etapas: Configurar → Revisar → Criar",
+    whats_new_about: "Dialog 'Sobre' com informações do plugin e links do criador",
+    whats_new_dark_mode: "Cores de destaque acessíveis por tema: verde no claro, âmbar no escuro",
+    whats_new_a11y: "Navegação completa por teclado, roles ARIA, suporte a leitor de tela e indicadores de foco visíveis",
+    whats_new_perf: "Vinculação de variáveis mais rápida em seleções grandes (lookups O(n) com Map)",
+
     about_btn: "Sobre",
     about_title: "Sobre este plugin",
     about_close: "Fechar",
@@ -317,6 +334,14 @@ const messages: Record<Locale, Record<string, string>> = {
     group_colors: "Colores",
     group_texts: "Textos",
     group_sizes: "Tamaños",
+
+    whats_new_title: "Novedades en v{version}",
+    whats_new_i18n: "Interfaz disponible en inglés, portugués (BR) y español — detectado automáticamente por el dispositivo",
+    whats_new_wizard: "Nuevo asistente de 3 pasos: Configurar → Revisar → Crear",
+    whats_new_about: "Diálogo 'Acerca de' con información del plugin y enlaces del creador",
+    whats_new_dark_mode: "Colores de acento accesibles por tema: verde en claro, ámbar en oscuro",
+    whats_new_a11y: "Navegación completa por teclado, roles ARIA, soporte para lector de pantalla e indicadores de foco visibles",
+    whats_new_perf: "Vinculación de variables más rápida en selecciones grandes (lookups O(n) con Map)",
 
     about_btn: "Acerca de",
     about_title: "Acerca de este plugin",

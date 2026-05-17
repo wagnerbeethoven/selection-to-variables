@@ -94,6 +94,8 @@ const aboutDialogEl = document.getElementById("aboutDialog") as HTMLDialogElemen
 const aboutCloseButtonEl = document.getElementById("aboutCloseButton") as HTMLButtonElement;
 const aboutVersionEl = document.getElementById("aboutVersion") as HTMLSpanElement;
 const aboutBuildDateEl = document.getElementById("aboutBuildDate") as HTMLSpanElement;
+const whatsNewSummaryEl = document.getElementById("whatsNewSummary") as HTMLElement;
+const whatsNewListEl = document.getElementById("whatsNewList") as HTMLUListElement;
 const toastEl = document.getElementById("toast") as HTMLDivElement;
 const statusDotEl = document.getElementById("statusDot") as HTMLSpanElement;
 const statusTextEl = document.getElementById("statusText") as HTMLSpanElement;
@@ -181,6 +183,7 @@ function setLocale(locale: Locale) {
   localeSelectEl.value = locale;
   document.documentElement.lang = locale === "pt-BR" ? "pt" : locale;
   applyTranslations(locale);
+  renderWhatsNew(locale);
   syncWindowToggleLabel();
   if (!state.busy) {
     scanButtonEl.textContent = t("btn_scan", locale);
@@ -550,6 +553,21 @@ actionTargetEls.forEach((input) => {
 aboutVersionEl.textContent = PLUGIN_VERSION;
 aboutBuildDateEl.textContent = PLUGIN_BUILD_DATE;
 
+function renderWhatsNew(locale: Locale) {
+  whatsNewSummaryEl.textContent = t("whats_new_title", locale, { version: PLUGIN_VERSION });
+  const items = [
+    "whats_new_i18n",
+    "whats_new_wizard",
+    "whats_new_about",
+    "whats_new_dark_mode",
+    "whats_new_a11y",
+    "whats_new_perf",
+  ];
+  whatsNewListEl.innerHTML = items
+    .map((key) => `<li>${escapeHtml(t(key, locale))}</li>`)
+    .join("");
+}
+
 aboutButtonEl.addEventListener("click", () => {
   aboutDialogEl.showModal();
   aboutCloseButtonEl.focus();
@@ -578,6 +596,7 @@ state.locale = detectLocale();
 document.documentElement.lang = state.locale === "pt-BR" ? "pt" : state.locale;
 localeSelectEl.value = state.locale;
 applyTranslations(state.locale);
+renderWhatsNew(state.locale);
 sendPluginMessage({ type: "load-prefs" });
 syncWindowToggleLabel();
 syncCreateActions();

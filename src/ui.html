@@ -238,6 +238,56 @@
         opacity: 0.8;
       }
 
+      .whats-new {
+        border: 1px solid var(--figma-color-border);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .whats-new summary {
+        padding: 9px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--figma-color-bg-secondary);
+        color: var(--figma-color-text);
+        outline: none;
+      }
+
+      .whats-new summary::-webkit-details-marker { display: none; }
+
+      .whats-new summary:focus {
+        box-shadow: 0 0 0 2px var(--plugin-accent-subtle) inset;
+      }
+
+      .whats-new summary::after {
+        content: "›";
+        font-size: 14px;
+        color: var(--figma-color-text-secondary);
+        transition: transform 180ms;
+      }
+
+      .whats-new[open] summary::after {
+        transform: rotate(90deg);
+      }
+
+      .whats-new-list {
+        margin: 0;
+        padding: 10px 14px 12px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--figma-color-text-secondary);
+        line-height: 1.5;
+        list-style: disc;
+      }
+
       /* ── Stepper ── */
       .stepper {
         display: flex;
@@ -1013,6 +1063,11 @@
           <span><strong data-i18n="about_version">Version</strong> <span id="aboutVersion"></span></span>
           <span><strong data-i18n="about_built">Last updated</strong> <span id="aboutBuildDate"></span></span>
         </div>
+
+        <details class="whats-new" id="whatsNewDetails">
+          <summary id="whatsNewSummary"></summary>
+          <ul class="whats-new-list" id="whatsNewList"></ul>
+        </details>
 
         <div>
           <div class="about-label" data-i18n="about_links">Links</div>
