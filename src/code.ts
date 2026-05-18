@@ -321,7 +321,9 @@ figma.ui.onmessage = async (
     }
 
     if (message.type === "open-url") {
-      figma.openExternal(message.url);
+      if (typeof message.url === "string" && message.url.startsWith("https://")) {
+        figma.openExternal(message.url);
+      }
       return;
     }
   } catch (error) {
@@ -354,6 +356,11 @@ function scheduleAutoScan() {
 }
 
 function postScanResult(silent = false) {
+  if (figma.currentPage.selection.length === 0) {
+    postFeedback("warning", t("backend_select_layer", currentLocale));
+    return;
+  }
+
   const { items, colorStyles, effectStyles, textStyles, textStyleDiagnostics, selectedNodeTypes, acceptedNodeTypes } = scanSelection(silent);
   const response: ScanPayload = {
     type: "scan-result",
@@ -371,11 +378,6 @@ function postScanResult(silent = false) {
   postColorStylesResult(colorStyles);
   postEffectStylesResult(effectStyles);
   postTextStylesResult(textStyles, textStyleDiagnostics);
-
-  if (figma.currentPage.selection.length === 0) {
-    postFeedback("warning", t("backend_select_layer", currentLocale));
-    return;
-  }
 
   postFeedback(
     "success",
@@ -487,7 +489,7 @@ function collectColorItems(node: SceneNode, items: Map<string, RawItem>, trail: 
     }
 
     const value = rgbaFromPaint(paint);
-    const key = `color:${value.r}:${value.g}:${value.b}:${value.a}`;
+    const key = `color:${value.r}:${value.g}:${value.b}:${value.a}:${category}`;
     upsertItem(items, key, {
       id: key,
       group: "colors",
@@ -667,7 +669,7 @@ function disambiguateNames<T extends { name: string }>(items: T[]): T[] {
     if ((count.get(item.name) ?? 1) <= 1) continue;
     const i = (index.get(item.name) ?? 0) + 1;
     index.set(item.name, i);
-    if (i > 1) item.name = `${item.name}-${i}`;
+    item.name = `${item.name}-${i}`;
   }
   return items;
 }
@@ -2080,10 +2082,6 @@ function stringKey(value: string) {
   return value.trim().toLowerCase();
 }
 
-
-function sameRgba(a: RgbaValue, b: RgbaValue): boolean {
-  return a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;
-}
 
 function isRgbaValue(value: VariableValue): value is RgbaValue {
   return (

@@ -258,8 +258,10 @@ function syncStepUI() {
     const locked = step > 1 && !hasResults();
     if (locked) {
       el.setAttribute("aria-disabled", "true");
+      el.setAttribute("tabindex", "-1");
     } else {
       el.removeAttribute("aria-disabled");
+      el.setAttribute("tabindex", "0");
     }
   });
 
@@ -303,6 +305,7 @@ function setActiveTab(tab: ActiveTab) {
     const isActive = btn.dataset.tab === tab;
     btn.dataset.active = isActive ? "true" : "false";
     btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    btn.setAttribute("tabindex", isActive ? "0" : "-1");
   });
   tabPanelEls.forEach((panel) => {
     panel.dataset.active = panel.dataset.tab === tab ? "true" : "false";
@@ -411,8 +414,7 @@ exportButtonEl.addEventListener("click", () => {
   document.body.appendChild(link);
   link.click();
   link.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  URL.revokeObjectURL(url);
   showToast("success", t("toast_exported", state.locale, { count: exportItems.length, filename }));
 });
 
@@ -456,8 +458,12 @@ window.addEventListener("message", (event: MessageEvent) => {
 
     render();
 
-    // Auto-advance to review step after successful scan
+    // Auto-advance to first tab with content
     if (hasResults() && state.currentStep === 1) {
+      if (state.items.length > 0) setActiveTab("variables");
+      else if (state.colorStyles.length > 0) setActiveTab("color-styles");
+      else if (state.textStyles.length > 0) setActiveTab("text-styles");
+      else setActiveTab("effect-styles");
       stepTo(2);
     }
     return;
@@ -753,13 +759,11 @@ function buildItemCard(item: UiItem) {
   checkbox.style.cssText = "width:14px;height:14px;padding:0;cursor:pointer;";
 
   nameInput.addEventListener("input", (e: Event) => {
-    const current = state.items.find((entry) => entry.id === item.id);
-    if (current) current.name = (e.target as HTMLInputElement).value;
+    item.name = (e.target as HTMLInputElement).value;
   });
 
   checkbox.addEventListener("change", (e: Event) => {
-    const current = state.items.find((entry) => entry.id === item.id);
-    if (current) current.include = (e.target as HTMLInputElement).checked;
+    item.include = (e.target as HTMLInputElement).checked;
   });
 
   wrapper.innerHTML = `
@@ -808,8 +812,7 @@ function buildTextStyleCard(item: UiTextStyle) {
 
   const input = wrapper.querySelector(".item-name-input") as HTMLInputElement;
   input.addEventListener("input", (e: Event) => {
-    const current = state.textStyles.find((entry) => entry.key === item.key);
-    if (current) current.name = (e.target as HTMLInputElement).value;
+    item.name = (e.target as HTMLInputElement).value;
   });
 
   return wrapper;
@@ -837,8 +840,7 @@ function buildColorStyleCard(item: UiColorStyle) {
 
   const input = wrapper.querySelector(".item-name-input") as HTMLInputElement;
   input.addEventListener("input", (e: Event) => {
-    const current = state.colorStyles.find((entry) => entry.key === item.key);
-    if (current) current.name = (e.target as HTMLInputElement).value;
+    item.name = (e.target as HTMLInputElement).value;
   });
 
   return wrapper;
@@ -865,8 +867,7 @@ function buildEffectStyleCard(item: UiEffectStyle) {
 
   const input = wrapper.querySelector(".item-name-input") as HTMLInputElement;
   input.addEventListener("input", (e: Event) => {
-    const current = state.effectStyles.find((entry) => entry.key === item.key);
-    if (current) current.name = (e.target as HTMLInputElement).value;
+    item.name = (e.target as HTMLInputElement).value;
   });
 
   return wrapper;
@@ -1138,6 +1139,7 @@ function sendPluginMessage(message: Record<string, unknown>) {
 
 function syncWindowToggleLabel() {
   windowToggleButtonEl.textContent = state.isMaximized ? t("btn_restore", state.locale) : t("btn_maximize", state.locale);
+  windowToggleButtonEl.setAttribute("aria-pressed", String(state.isMaximized));
 }
 
 function getValueLabel(item: UiItem) {

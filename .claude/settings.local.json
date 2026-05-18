@@ -9,7 +9,11 @@
       "Bash(git push *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\wagne\\\\Documents\\\\Projetos\\\\plugin figma\" -Recurse -File)",
       "Bash(Select-Object FullName)",
-      "Bash(Sort-Object FullName)"
+      "Bash(Sort-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\wagne\\\\Documents\\\\Projetos\\\\plugin figma\" -Recurse -Force)",
+      "Bash(Select-Object -Property FullName)",
+      "Bash(cd \"/c/Users/wagne/Documents/Projetos/plugin figma\" && find . -type f \\\\\\( -name \"*.css\" -o -name \"*.scss\" -o -name \"*.json\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" \\\\\\) | head -100)",
+      "Bash(npx tsc *)"
     ]
   }
 }
