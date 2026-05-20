@@ -928,6 +928,11 @@
           <div class="step-dot" aria-hidden="true">3</div>
           <span class="step-label" data-i18n="step_create">Create</span>
         </div>
+        <div class="step-connector" aria-hidden="true"></div>
+        <div class="step" role="button" tabindex="-1" data-i18n-aria-label="step4_aria" aria-label="Optional step: Design Guide" data-step="4" data-state="pending" id="step4Indicator">
+          <div class="step-dot" aria-hidden="true">*</div>
+          <span class="step-label" data-i18n="step_design_guide">Design Guide</span>
+        </div>
       </div>
 
       <!-- Content -->
@@ -978,7 +983,6 @@
             <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelTypography" data-tab="typography" tabindex="-1" id="tabTypography" data-i18n="tab_typography">Typography</button>
             <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelSizes" data-tab="sizes" tabindex="-1" id="tabSizes" data-i18n="tab_sizes">Sizes</button>
             <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelEffects" data-tab="effects" tabindex="-1" id="tabEffects" data-i18n="tab_effects">Effects</button>
-            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelDesignGuide" data-tab="design-guide" tabindex="-1" id="tabDesignGuide" data-i18n="tab_design_guide">Design Guide</button>
           </nav>
 
           <div class="tab-panels-wrapper">
@@ -1001,9 +1005,6 @@
               <div class="items" id="effectsStyles"></div>
             </div>
 
-            <div class="tab-panel" role="tabpanel" aria-labelledby="tabDesignGuide" data-tab="design-guide" id="tabPanelDesignGuide">
-              <div class="design-guide-panel" id="designGuidePanel"></div>
-            </div>
           </div>
         </div>
 
@@ -1035,6 +1036,12 @@
           </div>
         </div>
 
+        <!-- Step 4: Design Guide (optional) -->
+        <div class="step-panel" data-step="4" id="stepPanel4">
+          <p class="summary-text" data-i18n="step4_desc">Generate design system documentation frames directly in your Figma canvas.</p>
+          <div class="design-guide-panel" id="designGuidePanel"></div>
+        </div>
+
       </div><!-- /content -->
 
       <!-- Footer -->
@@ -1046,6 +1053,7 @@
           <button class="btn-ghost" id="createButton" data-loading="false" style="display:none;">Create</button>
           <button class="btn-primary" id="nextButton" data-i18n="btn_next">Next →</button>
           <button class="btn-primary" id="createApplyButton" data-loading="false" style="display:none;">Create and apply</button>
+          <button class="btn-primary" id="generateButton" data-loading="false" style="display:none;" disabled data-i18n="btn_generate">Generate Design Guide</button>
         </div>
       </footer>
 

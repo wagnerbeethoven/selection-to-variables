@@ -21,6 +21,7 @@ type UiTextStyle = {
   key: string;
   name: string;
   occurrences: number;
+  include: boolean;
   signature: {
     fontName: { family: string; style: string };
     fontSize: number;
@@ -38,6 +39,7 @@ type UiColorStyle = {
   category: string;
   value: { r: number; g: number; b: number; a: number };
   occurrences: number;
+  include: boolean;
 };
 
 type UiEffectStyle = {
@@ -46,6 +48,7 @@ type UiEffectStyle = {
   category: string;
   effects: Array<Record<string, unknown>>;
   occurrences: number;
+  include: boolean;
 };
 
 type UiPrefs = {
@@ -63,7 +66,7 @@ type UiCollectionOption = {
 
 type ToastLevel = "info" | "success" | "warning" | "error";
 type ActionTarget = "variables" | "text-styles" | "color-styles" | "effect-styles";
-type ActiveTab = "colors" | "typography" | "sizes" | "effects" | "design-guide";
+type ActiveTab = "colors" | "typography" | "sizes" | "effects";
 type UiTextStyleDiagnostics = {
   textNodesFound: number;
   styledSegmentsRead: number;
@@ -107,19 +110,21 @@ const actionTargetEls = Array.from(document.querySelectorAll('input[name="action
 // Wizard
 const backButtonEl = document.getElementById("backButton") as HTMLButtonElement;
 const nextButtonEl = document.getElementById("nextButton") as HTMLButtonElement;
+const generateButtonEl = document.getElementById("generateButton") as HTMLButtonElement;
 const step1IndicatorEl = document.getElementById("step1Indicator") as HTMLDivElement;
 const step2IndicatorEl = document.getElementById("step2Indicator") as HTMLDivElement;
 const step3IndicatorEl = document.getElementById("step3Indicator") as HTMLDivElement;
+const step4IndicatorEl = document.getElementById("step4Indicator") as HTMLDivElement;
 const stepPanel1El = document.getElementById("stepPanel1") as HTMLDivElement;
 const stepPanel2El = document.getElementById("stepPanel2") as HTMLDivElement;
 const stepPanel3El = document.getElementById("stepPanel3") as HTMLDivElement;
+const stepPanel4El = document.getElementById("stepPanel4") as HTMLDivElement;
 const tabButtonEls = Array.from(document.querySelectorAll(".tab")) as HTMLButtonElement[];
 const tabPanelEls = Array.from(document.querySelectorAll(".tab-panel")) as HTMLDivElement[];
 const tabColorsEl = document.getElementById("tabColors") as HTMLButtonElement;
 const tabTypographyEl = document.getElementById("tabTypography") as HTMLButtonElement;
 const tabSizesEl = document.getElementById("tabSizes") as HTMLButtonElement;
 const tabEffectsEl = document.getElementById("tabEffects") as HTMLButtonElement;
-const tabDesignGuideEl = document.getElementById("tabDesignGuide") as HTMLButtonElement;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state: {
@@ -138,7 +143,7 @@ const state: {
   toastTimer: number | null;
   forcedShowAll: boolean;
   isMaximized: boolean;
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2 | 3 | 4;
   activeTab: ActiveTab;
   locale: Locale;
 } = {
@@ -215,7 +220,7 @@ localeSelectEl.addEventListener("change", () => {
 });
 
 // ── Wizard navigation ─────────────────────────────────────────────────────────
-function stepTo(n: 1 | 2 | 3) {
+function stepTo(n: 1 | 2 | 3 | 4) {
   state.currentStep = n;
   syncStepUI();
 }
@@ -236,21 +241,22 @@ function syncStepUI() {
   stepPanel1El.dataset.active = currentStep === 1 ? "true" : "false";
   stepPanel2El.dataset.active = currentStep === 2 ? "true" : "false";
   stepPanel3El.dataset.active = currentStep === 3 ? "true" : "false";
+  stepPanel4El.dataset.active = currentStep === 4 ? "true" : "false";
 
-  // Indicator dots
-  const indicators = [step1IndicatorEl, step2IndicatorEl, step3IndicatorEl];
+  // Indicator dots (steps 1-3 numbered, step 4 always shows *)
+  const indicators = [step1IndicatorEl, step2IndicatorEl, step3IndicatorEl, step4IndicatorEl];
   indicators.forEach((el, i) => {
-    const step = (i + 1) as 1 | 2 | 3;
+    const step = (i + 1) as 1 | 2 | 3 | 4;
     const dot = el.querySelector(".step-dot") as HTMLElement;
     if (step < currentStep) {
       el.dataset.state = "done";
-      dot.textContent = "✓";
+      dot.textContent = step === 4 ? "*" : "✓";
     } else if (step === currentStep) {
       el.dataset.state = "active";
-      dot.textContent = String(step);
+      dot.textContent = step === 4 ? "*" : String(step);
     } else {
       el.dataset.state = "pending";
-      dot.textContent = String(step);
+      dot.textContent = step === 4 ? "*" : String(step);
     }
 
     if (step === currentStep) {
@@ -259,26 +265,30 @@ function syncStepUI() {
       el.removeAttribute("aria-current");
     }
 
+    // Steps 2-3 locked until scan; step 4 locked until scan too
     const locked = step > 1 && !hasResults();
     if (locked) {
       el.setAttribute("aria-disabled", "true");
       el.setAttribute("tabindex", "-1");
     } else {
       el.removeAttribute("aria-disabled");
-      el.setAttribute("tabindex", "0");
+      el.setAttribute("tabindex", step === 4 ? "0" : "0");
     }
   });
 
   // Step indicator click affordance
+  const has = hasResults();
   step1IndicatorEl.style.opacity = "1";
-  step2IndicatorEl.style.opacity = hasResults() ? "1" : "0.4";
-  step3IndicatorEl.style.opacity = hasResults() ? "1" : "0.4";
+  step2IndicatorEl.style.opacity = has ? "1" : "0.4";
+  step3IndicatorEl.style.opacity = has ? "1" : "0.4";
+  step4IndicatorEl.style.opacity = has ? "1" : "0.4";
 
   // Footer buttons
   backButtonEl.style.display = currentStep > 1 ? "" : "none";
   nextButtonEl.style.display = currentStep < 3 ? "" : "none";
   createButtonEl.style.display = currentStep === 3 ? "" : "none";
   createApplyButtonEl.style.display = currentStep === 3 ? "" : "none";
+  generateButtonEl.style.display = currentStep === 4 ? "" : "none";
 
   // Next disabled until scan done
   if (currentStep === 1) {
@@ -307,7 +317,6 @@ function updateTabCounts() {
   tabTypographyEl.textContent = fmt("tab_typography", typographyCount);
   tabSizesEl.textContent = fmt("tab_sizes", sizesCount);
   tabEffectsEl.textContent = fmt("tab_effects", effectsCount);
-  tabDesignGuideEl.textContent = t("tab_design_guide", loc);
 }
 
 function setActiveTab(tab: ActiveTab) {
@@ -332,14 +341,14 @@ nextButtonEl.addEventListener("click", () => {
 
 backButtonEl.addEventListener("click", () => {
   if (state.currentStep > 1) {
-    stepTo((state.currentStep - 1) as 1 | 2);
+    stepTo((state.currentStep - 1) as 1 | 2 | 3);
   }
 });
 
 // Step indicator navigation
-[step1IndicatorEl, step2IndicatorEl, step3IndicatorEl].forEach((el) => {
+[step1IndicatorEl, step2IndicatorEl, step3IndicatorEl, step4IndicatorEl].forEach((el) => {
   const activate = () => {
-    const step = Number(el.dataset.step) as 1 | 2 | 3;
+    const step = Number(el.dataset.step) as 1 | 2 | 3 | 4;
     if (step === 1 || hasResults()) {
       stepTo(step);
     }
@@ -453,9 +462,15 @@ window.addEventListener("message", (event: MessageEvent) => {
       ...item,
       include: hasRepeatedItems ? item.occurrences > 1 : true
     }));
-    state.colorStyles = Array.isArray(message.colorStyles) ? message.colorStyles : [];
-    state.effectStyles = Array.isArray(message.effectStyles) ? message.effectStyles : [];
-    state.textStyles = Array.isArray(message.textStyles) ? message.textStyles : [];
+    state.colorStyles = Array.isArray(message.colorStyles)
+      ? message.colorStyles.map((s: UiColorStyle) => ({ ...s, include: true }))
+      : [];
+    state.effectStyles = Array.isArray(message.effectStyles)
+      ? message.effectStyles.map((s: UiEffectStyle) => ({ ...s, include: true }))
+      : [];
+    state.textStyles = Array.isArray(message.textStyles)
+      ? message.textStyles.map((s: UiTextStyle) => ({ ...s, include: true }))
+      : [];
     state.textStyleDiagnostics = message.textStyleDiagnostics ?? state.textStyleDiagnostics;
     state.selectionCount = message.selectionCount;
     state.repeatedCount = message.repeatedCount;
@@ -636,7 +651,6 @@ function render() {
     typographyStylesEl.innerHTML = "";
     sizesItemsEl.innerHTML = emptyMsg;
     effectsStylesEl.innerHTML = `<p class="empty">${t("empty_effects", loc)}</p>`;
-    designGuidePanelEl.innerHTML = `<p class="empty">${t("empty_design_guide", loc)}</p>`;
     summaryEl.textContent = state.selectionCount > 0
       ? t("summary_no_tokens", loc, { nodes: state.selectionCount })
       : "";
@@ -707,9 +721,6 @@ function render() {
   } else {
     effectsStylesEl.innerHTML = `<p class="empty">${t("empty_effects", loc)}</p>`;
   }
-
-  // ── Design Guide tab ──
-  designGuidePanelEl.innerHTML = `<p class="empty">${t("empty_design_guide", loc)}</p>`;
 
   syncStepUI();
 }
@@ -845,6 +856,17 @@ function buildTextStyleCard(item: UiTextStyle) {
     item.name = (e.target as HTMLInputElement).value;
   });
 
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = item.include;
+  checkbox.setAttribute("aria-label", t("checkbox_include", state.locale));
+  checkbox.style.cssText = "width:14px;height:14px;padding:0;cursor:pointer;";
+  checkbox.addEventListener("change", (e: Event) => {
+    item.include = (e.target as HTMLInputElement).checked;
+  });
+  const mainEl = wrapper.querySelector(".item-main") as HTMLDivElement;
+  mainEl.appendChild(checkbox);
+
   return wrapper;
 }
 
@@ -873,6 +895,17 @@ function buildColorStyleCard(item: UiColorStyle) {
     item.name = (e.target as HTMLInputElement).value;
   });
 
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = item.include;
+  checkbox.setAttribute("aria-label", t("checkbox_include", state.locale));
+  checkbox.style.cssText = "width:14px;height:14px;padding:0;cursor:pointer;";
+  checkbox.addEventListener("change", (e: Event) => {
+    item.include = (e.target as HTMLInputElement).checked;
+  });
+  const mainEl = wrapper.querySelector(".item-main") as HTMLDivElement;
+  mainEl.appendChild(checkbox);
+
   return wrapper;
 }
 
@@ -899,6 +932,17 @@ function buildEffectStyleCard(item: UiEffectStyle) {
   input.addEventListener("input", (e: Event) => {
     item.name = (e.target as HTMLInputElement).value;
   });
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = item.include;
+  checkbox.setAttribute("aria-label", t("checkbox_include", state.locale));
+  checkbox.style.cssText = "width:14px;height:14px;padding:0;cursor:pointer;";
+  checkbox.addEventListener("change", (e: Event) => {
+    item.include = (e.target as HTMLInputElement).checked;
+  });
+  const mainEl = wrapper.querySelector(".item-main") as HTMLDivElement;
+  mainEl.appendChild(checkbox);
 
   return wrapper;
 }
@@ -1005,7 +1049,7 @@ function requestTextStyleCreation(applyToSelection: boolean) {
   sendPluginMessage({
     type: "create-text-styles",
     applyToSelection,
-    styles: state.textStyles.map((s) => ({ key: s.key, name: s.name }))
+    styles: state.textStyles.filter((s) => s.include).map((s) => ({ key: s.key, name: s.name }))
   });
 }
 
@@ -1013,7 +1057,7 @@ function requestColorStyleCreation(applyToSelection: boolean) {
   sendPluginMessage({
     type: "create-color-styles",
     applyToSelection,
-    styles: state.colorStyles.map((s) => ({ key: s.key, name: s.name }))
+    styles: state.colorStyles.filter((s) => s.include).map((s) => ({ key: s.key, name: s.name }))
   });
 }
 
@@ -1021,7 +1065,7 @@ function requestEffectStyleCreation(applyToSelection: boolean) {
   sendPluginMessage({
     type: "create-effect-styles",
     applyToSelection,
-    styles: state.effectStyles.map((s) => ({ key: s.key, name: s.name }))
+    styles: state.effectStyles.filter((s) => s.include).map((s) => ({ key: s.key, name: s.name }))
   });
 }
 
