@@ -591,6 +591,8 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        overflow-y: auto;
+        padding-right: 2px;
       }
 
       .step-panel--review {
@@ -602,13 +604,13 @@
         flex: 1;
         overflow: hidden;
         padding-top: 12px;
+        display: flex;
+        flex-direction: column;
       }
 
       /* ── Items list ── */
       .items {
-        min-height: 140px;
-        max-height: 400px;
-        overflow-y: auto;
+        min-height: 0;
       }
 
       .group-section {
@@ -930,7 +932,7 @@
         </div>
         <div class="step-connector" aria-hidden="true"></div>
         <div class="step" role="button" tabindex="-1" data-i18n-aria-label="step4_aria" aria-label="Optional step: Design Guide" data-step="4" data-state="pending" id="step4Indicator">
-          <div class="step-dot" aria-hidden="true">*</div>
+          <div class="step-dot" aria-hidden="true" style="font-size:11px;">🎨</div>
           <span class="step-label" data-i18n="step_design_guide">Design Guide</span>
         </div>
       </div>
@@ -1015,19 +1017,19 @@
           <div class="target-grid">
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="variables" checked />
-              <span data-i18n="tab_variables">Variables</span>
+              <span data-i18n="create_variables">Variables</span>
             </label>
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="text-styles" />
-              <span data-i18n="tab_text_styles">Text styles</span>
+              <span data-i18n="create_text_styles">Text styles</span>
             </label>
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="color-styles" />
-              <span data-i18n="tab_color_styles">Color styles</span>
+              <span data-i18n="create_color_styles">Color styles</span>
             </label>
             <label class="target-card">
               <input type="checkbox" name="actionTarget" value="effect-styles" />
-              <span data-i18n="tab_effect_styles">Effect styles</span>
+              <span data-i18n="create_effect_styles">Effect styles</span>
             </label>
           </div>
 

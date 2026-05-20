@@ -248,15 +248,18 @@ function syncStepUI() {
   indicators.forEach((el, i) => {
     const step = (i + 1) as 1 | 2 | 3 | 4;
     const dot = el.querySelector(".step-dot") as HTMLElement;
-    if (step < currentStep) {
+    if (step === 4) {
+      // Design Guide: always show palette emoji, state still changes for styling
+      el.dataset.state = step < currentStep ? "done" : step === currentStep ? "active" : "pending";
+    } else if (step < currentStep) {
       el.dataset.state = "done";
-      dot.textContent = step === 4 ? "*" : "✓";
+      dot.textContent = "✓";
     } else if (step === currentStep) {
       el.dataset.state = "active";
-      dot.textContent = step === 4 ? "*" : String(step);
+      dot.textContent = String(step);
     } else {
       el.dataset.state = "pending";
-      dot.textContent = step === 4 ? "*" : String(step);
+      dot.textContent = String(step);
     }
 
     if (step === currentStep) {
@@ -526,20 +529,26 @@ window.addEventListener("message", (event: MessageEvent) => {
   }
 
   if (message.type === "text-styles-result") {
-    state.textStyles = Array.isArray(message.textStyles) ? message.textStyles : [];
+    state.textStyles = Array.isArray(message.textStyles)
+      ? message.textStyles.map((s: UiTextStyle) => ({ ...s, include: s.include ?? true }))
+      : [];
     state.textStyleDiagnostics = message.textStyleDiagnostics ?? state.textStyleDiagnostics;
     render();
     return;
   }
 
   if (message.type === "color-styles-result") {
-    state.colorStyles = Array.isArray(message.colorStyles) ? message.colorStyles : [];
+    state.colorStyles = Array.isArray(message.colorStyles)
+      ? message.colorStyles.map((s: UiColorStyle) => ({ ...s, include: s.include ?? true }))
+      : [];
     render();
     return;
   }
 
   if (message.type === "effect-styles-result") {
-    state.effectStyles = Array.isArray(message.effectStyles) ? message.effectStyles : [];
+    state.effectStyles = Array.isArray(message.effectStyles)
+      ? message.effectStyles.map((s: UiEffectStyle) => ({ ...s, include: s.include ?? true }))
+      : [];
     render();
     return;
   }

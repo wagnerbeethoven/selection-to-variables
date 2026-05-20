@@ -55,6 +55,12 @@ const messages: Record<Locale, Record<string, string>> = {
     tab_effects: "Effects",
     tab_design_guide: "Design Guide",
 
+    // Step 3 action targets
+    create_variables: "Variables",
+    create_text_styles: "Text styles",
+    create_color_styles: "Color styles",
+    create_effect_styles: "Effect styles",
+
     // Step 3
     step3_desc: "Choose what to create from the scanned tokens:",
     btn_export: "Export JSON",
@@ -211,6 +217,11 @@ const messages: Record<Locale, Record<string, string>> = {
     tab_effects: "Efeitos",
     tab_design_guide: "Guia de Design",
 
+    create_variables: "Variáveis",
+    create_text_styles: "Estilos de texto",
+    create_color_styles: "Estilos de cor",
+    create_effect_styles: "Estilos de efeito",
+
     step3_desc: "Escolha o que criar a partir dos tokens escaneados:",
     btn_export: "Exportar JSON",
     btn_create: "Criar",
@@ -352,6 +363,11 @@ const messages: Record<Locale, Record<string, string>> = {
     tab_sizes: "Tamaños",
     tab_effects: "Efectos",
     tab_design_guide: "Guía de Diseño",
+
+    create_variables: "Variables",
+    create_text_styles: "Estilos de texto",
+    create_color_styles: "Estilos de color",
+    create_effect_styles: "Estilos de efecto",
 
     step3_desc: "Elige qué crear a partir de los tokens escaneados:",
     btn_export: "Exportar JSON",
