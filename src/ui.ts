@@ -289,6 +289,7 @@ function syncStepUI() {
   createButtonEl.style.display = currentStep === 3 ? "" : "none";
   createApplyButtonEl.style.display = currentStep === 3 ? "" : "none";
   generateButtonEl.style.display = currentStep === 4 ? "" : "none";
+  generateButtonEl.disabled = state.busy || !hasResults();
 
   // Next disabled until scan done
   if (currentStep === 1) {
@@ -395,6 +396,32 @@ scanButtonEl.addEventListener("click", () => {
   setBusy(true, "scan", t("backend_scanning", state.locale));
   summaryEl.textContent = "";
   sendPluginMessage({ type: "scan-selection", locale: state.locale });
+});
+
+generateButtonEl.addEventListener("click", () => {
+  const colorItems = state.items
+    .filter((i) => i.group === "colors" && i.include)
+    .map((i) => ({ name: i.name, value: i.value as { r: number; g: number; b: number; a: number } }));
+
+  const sizeItems = state.items
+    .filter((i) => i.group === "sizes" && i.include)
+    .map((i) => ({ name: i.name, value: i.value as number, category: i.category }));
+
+  sendPluginMessage({
+    type: "generate-design-system",
+    colorItems,
+    colorStyles: state.colorStyles.filter((s) => s.include).map((s) => ({ name: s.name, value: s.value })),
+    textStyles: state.textStyles.filter((s) => s.include).map((s) => ({
+      name: s.name,
+      signature: {
+        fontName: s.signature.fontName,
+        fontSize: s.signature.fontSize,
+        lineHeight: s.signature.lineHeight
+      }
+    })),
+    sizeItems,
+    effectStyles: state.effectStyles.filter((s) => s.include).map((s) => ({ name: s.name, effects: s.effects }))
+  });
 });
 
 createButtonEl.addEventListener("click", () => {
@@ -978,6 +1005,7 @@ function setBusy(busy: boolean, action: "scan" | "create" | "create-apply" | nul
   createButtonEl.disabled = busy;
   createApplyButtonEl.disabled = busy;
   exportButtonEl.disabled = busy;
+  generateButtonEl.disabled = busy || !hasResults();
   actionTargetEls.forEach((input) => { input.disabled = busy; });
 
   const loc = state.locale;

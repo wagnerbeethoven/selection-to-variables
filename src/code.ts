@@ -206,6 +206,22 @@ type CreateEffectStylesPayload = {
   }>;
 };
 
+type GenerateDesignSystemPayload = {
+  type: "generate-design-system";
+  colorItems: Array<{ name: string; value: RgbaValue }>;
+  colorStyles: Array<{ name: string; value: RgbaValue }>;
+  textStyles: Array<{
+    name: string;
+    signature: {
+      fontName: { family: string; style: string };
+      fontSize: number;
+      lineHeight: { unit: string; value?: number };
+    };
+  }>;
+  sizeItems: Array<{ name: string; value: number; category: string }>;
+  effectStyles: Array<{ name: string; effects: Array<Record<string, unknown>> }>;
+};
+
 type ScanRequest = {
   type: "scan-selection";
   locale?: Locale;
@@ -258,6 +274,7 @@ figma.ui.onmessage = async (
     | CreateTextStylesPayload
     | CreateColorStylesPayload
     | CreateEffectStylesPayload
+    | GenerateDesignSystemPayload
     | LoadPrefsRequest
     | SavePrefsRequest
     | ResizeWindowRequest
@@ -317,6 +334,12 @@ figma.ui.onmessage = async (
     if (message.type === "resize-window") {
       const size = message.mode === "maximized" ? MAXIMIZED_UI_SIZE : DEFAULT_UI_SIZE;
       figma.ui.resize(size.width, size.height);
+      return;
+    }
+
+    if (message.type === "generate-design-system") {
+      postFeedback("info", t("backend_generating_design_system", currentLocale));
+      await generateDesignSystem(message as GenerateDesignSystemPayload);
       return;
     }
 
@@ -2120,4 +2143,258 @@ function hasUniformCornerRadius(node: SceneNode): node is SceneNode & CornerMixi
     node.topLeftRadius === node.bottomLeftRadius &&
     node.topLeftRadius === node.bottomRightRadius
   );
+}
+
+// ── Design System Frame Generator ─────────────────────────────────────────────
+
+async function generateDesignSystem(payload: GenerateDesignSystemPayload) {
+  await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+  await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+  await figma.loadFontAsync({ family: "Inter", style: "Medium" });
+
+  const root = dsFrame("Design System", "VERTICAL", 48, 48);
+  root.fills = [{ type: "SOLID", color: { r: 0.976, g: 0.976, b: 0.976 } }];
+  root.x = Math.round(figma.viewport.center.x - 480);
+  root.y = Math.round(figma.viewport.center.y - 300);
+
+  const hasColors = payload.colorItems.length > 0 || payload.colorStyles.length > 0;
+  const hasType   = payload.textStyles.length > 0;
+  const hasSizes  = payload.sizeItems.length > 0;
+  const hasFx     = payload.effectStyles.length > 0;
+
+  if (hasColors)  root.appendChild(await buildDsColorsSection(payload));
+  if (hasType)    root.appendChild(await buildDsTypographySection(payload));
+  if (hasSizes)   root.appendChild(buildDsSizesSection(payload));
+  if (hasFx)      root.appendChild(buildDsEffectsSection(payload));
+
+  figma.currentPage.appendChild(root);
+  figma.viewport.scrollAndZoomIntoView([root]);
+  figma.notify(t("backend_design_system_generated", currentLocale));
+  postFeedback("success", t("backend_design_system_generated", currentLocale));
+}
+
+// ── Section builders ──────────────────────────────────────────────────────────
+
+async function buildDsColorsSection(payload: GenerateDesignSystemPayload): Promise<FrameNode> {
+  const section = dsSection("Colors");
+  const grid = dsFrame("swatches", "HORIZONTAL", 16, 0);
+  grid.layoutWrap = "WRAP";
+  grid.counterAxisSpacing = 16;
+  grid.fills = [];
+
+  const all = [
+    ...payload.colorItems.map((c) => ({ name: c.name, value: c.value, source: "token" })),
+    ...payload.colorStyles.map((c) => ({ name: c.name, value: c.value, source: "style" }))
+  ];
+
+  for (const item of all) {
+    grid.appendChild(buildDsColorSwatch(item.name, item.value));
+  }
+
+  section.appendChild(grid);
+  return section;
+}
+
+function buildDsColorSwatch(name: string, value: RgbaValue): FrameNode {
+  const card = dsFrame(name, "VERTICAL", 6, 0);
+
+  const rect = figma.createRectangle();
+  rect.name = "swatch";
+  rect.resize(80, 80);
+  rect.cornerRadius = 8;
+  rect.fills = [{ type: "SOLID", color: { r: value.r, g: value.g, b: value.b }, opacity: value.a }];
+  rect.strokes = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, opacity: 0.08 }];
+  rect.strokeWeight = 1;
+
+  const shortName = name.split("/").pop() || name;
+  const labelNode = dsText(shortName, 10, "Medium", { r: 0.1, g: 0.1, b: 0.1 });
+  labelNode.textAutoResize = "WIDTH_AND_HEIGHT";
+  labelNode.resize(80, labelNode.height);
+
+  const hex = dsRgbaToHex(value);
+  const hexNode = dsText(hex, 9, "Regular", { r: 0.55, g: 0.55, b: 0.55 });
+  hexNode.textAutoResize = "WIDTH_AND_HEIGHT";
+  hexNode.resize(80, hexNode.height);
+
+  card.appendChild(rect);
+  card.appendChild(labelNode);
+  card.appendChild(hexNode);
+  return card;
+}
+
+async function buildDsTypographySection(payload: GenerateDesignSystemPayload): Promise<FrameNode> {
+  const section = dsSection("Typography");
+
+  for (const style of payload.textStyles) {
+    try {
+      await figma.loadFontAsync(style.signature.fontName as FontName);
+    } catch {
+      // Font unavailable — skip this style
+      continue;
+    }
+
+    const row = dsFrame(style.name, "HORIZONTAL", 24, 0);
+    row.counterAxisAlignItems = "CENTER";
+    row.fills = [];
+
+    const sample = figma.createText();
+    sample.name = "sample";
+    sample.fontName = style.signature.fontName as FontName;
+    sample.fontSize = Math.min(style.signature.fontSize, 48);
+    sample.characters = "Aa";
+    sample.fills = [{ type: "SOLID", color: { r: 0.08, g: 0.08, b: 0.08 } }];
+    sample.resize(100, sample.height);
+
+    const lineHeightStr = style.signature.lineHeight.unit === "AUTO"
+      ? "auto"
+      : `${style.signature.lineHeight.value ?? 0}${style.signature.lineHeight.unit === "PIXELS" ? "px" : "%"}`;
+
+    const meta = dsFrame("meta", "VERTICAL", 2, 0);
+    meta.fills = [];
+    meta.appendChild(dsText(style.name.split("/").pop() || style.name, 11, "Medium", { r: 0.08, g: 0.08, b: 0.08 }));
+    meta.appendChild(dsText(
+      `${style.signature.fontName.family} ${style.signature.fontName.style} · ${style.signature.fontSize}px / ${lineHeightStr}`,
+      9, "Regular", { r: 0.55, g: 0.55, b: 0.55 }
+    ));
+
+    row.appendChild(sample);
+    row.appendChild(meta);
+    section.appendChild(row);
+  }
+
+  return section;
+}
+
+function buildDsSizesSection(payload: GenerateDesignSystemPayload): FrameNode {
+  const section = dsSection("Sizes");
+  const MAX_BAR = 320;
+
+  const values = payload.sizeItems
+    .filter((s) => typeof s.value === "number" && s.value > 0)
+    .sort((a, b) => a.value - b.value);
+
+  const maxVal = Math.max(...values.map((s) => s.value), 1);
+
+  for (const item of values) {
+    const row = dsFrame(item.name, "HORIZONTAL", 12, 0);
+    row.counterAxisAlignItems = "CENTER";
+    row.fills = [];
+
+    const barW = Math.max(4, Math.round((item.value / maxVal) * MAX_BAR));
+    const bar = figma.createRectangle();
+    bar.name = "bar";
+    bar.resize(barW, 16);
+    bar.cornerRadius = 3;
+    bar.fills = [{ type: "SOLID", color: { r: 0.22, g: 0.55, b: 0.55 } }];
+
+    const shortName = item.name.split("/").pop() || item.name;
+    const lbl = dsText(`${shortName}  ${item.value}px`, 9, "Regular", { r: 0.4, g: 0.4, b: 0.4 });
+
+    row.appendChild(bar);
+    row.appendChild(lbl);
+    section.appendChild(row);
+  }
+
+  return section;
+}
+
+function buildDsEffectsSection(payload: GenerateDesignSystemPayload): FrameNode {
+  const section = dsSection("Effects");
+  const row = dsFrame("effect-cards", "HORIZONTAL", 16, 0);
+  row.fills = [];
+
+  for (const item of payload.effectStyles) {
+    const card = dsFrame(item.name, "VERTICAL", 8, 0);
+
+    const rect = figma.createRectangle();
+    rect.name = "effect-preview";
+    rect.resize(80, 80);
+    rect.cornerRadius = 8;
+    rect.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+    const builtEffects = item.effects
+      .map((e) => buildEffectFromRecord(e))
+      .filter((e): e is Effect => e !== null);
+    if (builtEffects.length > 0) rect.effects = builtEffects;
+
+    const shortName = item.name.split("/").pop() || item.name;
+    const lbl = dsText(shortName, 10, "Medium", { r: 0.1, g: 0.1, b: 0.1 });
+    lbl.textAutoResize = "WIDTH_AND_HEIGHT";
+
+    card.appendChild(rect);
+    card.appendChild(lbl);
+    row.appendChild(card);
+  }
+
+  section.appendChild(row);
+  return section;
+}
+
+// ── DS frame/text helpers ─────────────────────────────────────────────────────
+
+function dsSection(title: string): FrameNode {
+  const frame = dsFrame(title, "VERTICAL", 20, 0);
+  const header = dsText(title, 16, "Bold", { r: 0.08, g: 0.08, b: 0.08 });
+  frame.appendChild(header);
+
+  const divider = figma.createRectangle();
+  divider.name = "divider";
+  divider.resize(480, 1);
+  divider.fills = [{ type: "SOLID", color: { r: 0.85, g: 0.85, b: 0.85 } }];
+  frame.appendChild(divider);
+
+  return frame;
+}
+
+function dsFrame(name: string, mode: "HORIZONTAL" | "VERTICAL", gap: number, padding: number): FrameNode {
+  const frame = figma.createFrame();
+  frame.name = name;
+  frame.layoutMode = mode;
+  frame.primaryAxisSizingMode = "AUTO";
+  frame.counterAxisSizingMode = "AUTO";
+  frame.itemSpacing = gap;
+  if (padding > 0) {
+    frame.paddingTop = frame.paddingBottom = frame.paddingLeft = frame.paddingRight = padding;
+  }
+  frame.fills = [];
+  return frame;
+}
+
+function dsText(content: string, size: number, weight: "Regular" | "Medium" | "Bold", color: RGB): TextNode {
+  const text = figma.createText();
+  text.fontName = { family: "Inter", style: weight };
+  text.fontSize = size;
+  text.characters = content;
+  text.fills = [{ type: "SOLID", color }];
+  return text;
+}
+
+function dsRgbaToHex(v: RgbaValue): string {
+  const hex = (n: number) => Math.round(n * 255).toString(16).padStart(2, "0");
+  return v.a < 1
+    ? `rgba(${Math.round(v.r * 255)}, ${Math.round(v.g * 255)}, ${Math.round(v.b * 255)}, ${Math.round(v.a * 100) / 100})`
+    : `#${hex(v.r)}${hex(v.g)}${hex(v.b)}`;
+}
+
+function buildEffectFromRecord(e: Record<string, unknown>): Effect | null {
+  const type = e.type as string;
+  if (type === "DROP_SHADOW" || type === "INNER_SHADOW") {
+    return {
+      type: type as "DROP_SHADOW" | "INNER_SHADOW",
+      color: (e.color as RGBA) ?? { r: 0, g: 0, b: 0, a: 0.25 },
+      offset: (e.offset as Vector) ?? { x: 0, y: 4 },
+      radius: (e.radius as number) ?? 8,
+      spread: (e.spread as number) ?? 0,
+      visible: true,
+      blendMode: "NORMAL"
+    };
+  }
+  if (type === "LAYER_BLUR" || type === "BACKGROUND_BLUR") {
+    return {
+      type: type as "LAYER_BLUR" | "BACKGROUND_BLUR",
+      radius: (e.radius as number) ?? 4,
+      visible: true,
+      blurType: "NORMAL" as const
+    };
+  }
+  return null;
 }

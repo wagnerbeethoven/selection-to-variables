@@ -162,6 +162,8 @@ const messages: Record<Locale, Record<string, string>> = {
     backend_style_created_text_applied: "{created} {label} created and {reused} reused, {applied} text layer(s) updated.",
     backend_style_created_layers_applied: "{created} {label} created and {reused} reused, {applied} layer(s) updated.",
     backend_no_style_candidates: "No {label} found in the current selection.",
+    backend_generating_design_system: "Generating design system frames...",
+    backend_design_system_generated: "Design system frames generated successfully.",
 
     // Style labels (used inside backend messages)
     label_text_styles: "text styles",
@@ -303,6 +305,8 @@ const messages: Record<Locale, Record<string, string>> = {
     backend_style_created_text_applied: "{created} {label} criado(s) e {reused} reutilizado(s), {applied} camada(s) de texto atualizada(s).",
     backend_style_created_layers_applied: "{created} {label} criado(s) e {reused} reutilizado(s), {applied} camada(s) atualizada(s).",
     backend_no_style_candidates: "Nenhum(a) {label} encontrado(a) na seleção atual.",
+    backend_generating_design_system: "Gerando frames do design system...",
+    backend_design_system_generated: "Frames do design system gerados com sucesso.",
 
     label_text_styles: "estilos de texto",
     label_color_styles: "estilos de cor",
@@ -443,6 +447,8 @@ const messages: Record<Locale, Record<string, string>> = {
     backend_style_created_text_applied: "{created} {label} creado(s) y {reused} reutilizado(s), {applied} capa(s) de texto actualizada(s).",
     backend_style_created_layers_applied: "{created} {label} creado(s) y {reused} reutilizado(s), {applied} capa(s) actualizada(s).",
     backend_no_style_candidates: "No se encontró {label} en la selección actual.",
+    backend_generating_design_system: "Generando frames del sistema de diseño...",
+    backend_design_system_generated: "Frames del sistema de diseño generados correctamente.",
 
     label_text_styles: "estilos de texto",
     label_color_styles: "estilos de color",
