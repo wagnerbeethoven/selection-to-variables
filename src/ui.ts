@@ -63,7 +63,7 @@ type UiCollectionOption = {
 
 type ToastLevel = "info" | "success" | "warning" | "error";
 type ActionTarget = "variables" | "text-styles" | "color-styles" | "effect-styles";
-type ActiveTab = "variables" | "text-styles" | "color-styles" | "effect-styles";
+type ActiveTab = "colors" | "typography" | "sizes" | "effects" | "design-guide";
 type UiTextStyleDiagnostics = {
   textNodesFound: number;
   styledSegmentsRead: number;
@@ -71,11 +71,14 @@ type UiTextStyleDiagnostics = {
 };
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const itemsEl = document.getElementById("items") as HTMLDivElement;
-const colorStylesEl = document.getElementById("colorStyles") as HTMLDivElement;
-const effectStylesEl = document.getElementById("effectStyles") as HTMLDivElement;
-const textStylesEl = document.getElementById("textStyles") as HTMLDivElement;
-const textStylesDiagnosticsEl = document.getElementById("textStylesDiagnostics") as HTMLDivElement;
+const colorsItemsEl = document.getElementById("colorsItems") as HTMLDivElement;
+const colorsStylesEl = document.getElementById("colorsStyles") as HTMLDivElement;
+const typographyItemsEl = document.getElementById("typographyItems") as HTMLDivElement;
+const typographyStylesEl = document.getElementById("typographyStyles") as HTMLDivElement;
+const typographyDiagnosticsEl = document.getElementById("typographyDiagnostics") as HTMLDivElement;
+const sizesItemsEl = document.getElementById("sizesItems") as HTMLDivElement;
+const effectsStylesEl = document.getElementById("effectsStyles") as HTMLDivElement;
+const designGuidePanelEl = document.getElementById("designGuidePanel") as HTMLDivElement;
 const summaryEl = document.getElementById("summary") as HTMLParagraphElement;
 const collectionSelectEl = document.getElementById("collectionSelect") as HTMLSelectElement;
 const newCollectionNameEl = document.getElementById("newCollectionName") as HTMLInputElement;
@@ -112,10 +115,11 @@ const stepPanel2El = document.getElementById("stepPanel2") as HTMLDivElement;
 const stepPanel3El = document.getElementById("stepPanel3") as HTMLDivElement;
 const tabButtonEls = Array.from(document.querySelectorAll(".tab")) as HTMLButtonElement[];
 const tabPanelEls = Array.from(document.querySelectorAll(".tab-panel")) as HTMLDivElement[];
-const tabVariablesEl = document.getElementById("tabVariables") as HTMLButtonElement;
-const tabTextStylesEl = document.getElementById("tabTextStyles") as HTMLButtonElement;
-const tabColorStylesEl = document.getElementById("tabColorStyles") as HTMLButtonElement;
-const tabEffectStylesEl = document.getElementById("tabEffectStyles") as HTMLButtonElement;
+const tabColorsEl = document.getElementById("tabColors") as HTMLButtonElement;
+const tabTypographyEl = document.getElementById("tabTypography") as HTMLButtonElement;
+const tabSizesEl = document.getElementById("tabSizes") as HTMLButtonElement;
+const tabEffectsEl = document.getElementById("tabEffects") as HTMLButtonElement;
+const tabDesignGuideEl = document.getElementById("tabDesignGuide") as HTMLButtonElement;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const state: {
@@ -158,7 +162,7 @@ const state: {
   forcedShowAll: false,
   isMaximized: false,
   currentStep: 1,
-  activeTab: "variables",
+  activeTab: "colors" as ActiveTab,
   locale: "en"
 };
 
@@ -292,11 +296,18 @@ function updateTabCounts() {
     ? state.items.filter((item) => item.occurrences > 1)
     : state.items;
 
+  const colorCount = visibleItems.filter((i) => i.group === "colors").length + state.colorStyles.length;
+  const typographyCount = visibleItems.filter((i) => i.group === "texts").length + state.textStyles.length;
+  const sizesCount = visibleItems.filter((i) => i.group === "sizes").length;
+  const effectsCount = state.effectStyles.length;
+
   const loc = state.locale;
-  tabVariablesEl.textContent = `${t("tab_variables", loc)}${visibleItems.length > 0 ? ` (${visibleItems.length})` : ""}`;
-  tabTextStylesEl.textContent = `${t("tab_text_styles", loc)}${state.textStyles.length > 0 ? ` (${state.textStyles.length})` : ""}`;
-  tabColorStylesEl.textContent = `${t("tab_color_styles", loc)}${state.colorStyles.length > 0 ? ` (${state.colorStyles.length})` : ""}`;
-  tabEffectStylesEl.textContent = `${t("tab_effect_styles", loc)}${state.effectStyles.length > 0 ? ` (${state.effectStyles.length})` : ""}`;
+  const fmt = (key: string, n: number) => `${t(key, loc)}${n > 0 ? ` (${n})` : ""}`;
+  tabColorsEl.textContent = fmt("tab_colors", colorCount);
+  tabTypographyEl.textContent = fmt("tab_typography", typographyCount);
+  tabSizesEl.textContent = fmt("tab_sizes", sizesCount);
+  tabEffectsEl.textContent = fmt("tab_effects", effectsCount);
+  tabDesignGuideEl.textContent = t("tab_design_guide", loc);
 }
 
 function setActiveTab(tab: ActiveTab) {
@@ -460,10 +471,13 @@ window.addEventListener("message", (event: MessageEvent) => {
 
     // Auto-advance to first tab with content
     if (hasResults() && state.currentStep === 1) {
-      if (state.items.length > 0) setActiveTab("variables");
-      else if (state.colorStyles.length > 0) setActiveTab("color-styles");
-      else if (state.textStyles.length > 0) setActiveTab("text-styles");
-      else setActiveTab("effect-styles");
+      const colorCount = state.items.filter((i) => i.group === "colors").length + state.colorStyles.length;
+      const typographyCount = state.items.filter((i) => i.group === "texts").length + state.textStyles.length;
+      const sizesCount = state.items.filter((i) => i.group === "sizes").length;
+      if (colorCount > 0) setActiveTab("colors");
+      else if (typographyCount > 0) setActiveTab("typography");
+      else if (sizesCount > 0) setActiveTab("sizes");
+      else setActiveTab("effects");
       stepTo(2);
     }
     return;
@@ -612,12 +626,17 @@ function render() {
   renderTextStyleDiagnostics();
   updateTabCounts();
 
+  const loc = state.locale;
+
   if (!hasResults()) {
-    const loc = state.locale;
-    itemsEl.innerHTML = `<p class="empty">${t("empty_tokens", loc)}</p>`;
-    colorStylesEl.innerHTML = `<p class="empty">${t("empty_color_styles_pending", loc)}</p>`;
-    effectStylesEl.innerHTML = `<p class="empty">${t("empty_effect_styles_pending", loc)}</p>`;
-    textStylesEl.innerHTML = `<p class="empty">${t("empty_text_styles_pending", loc)}</p>`;
+    const emptyMsg = `<p class="empty">${t("empty_tokens", loc)}</p>`;
+    colorsItemsEl.innerHTML = emptyMsg;
+    colorsStylesEl.innerHTML = "";
+    typographyItemsEl.innerHTML = emptyMsg;
+    typographyStylesEl.innerHTML = "";
+    sizesItemsEl.innerHTML = emptyMsg;
+    effectsStylesEl.innerHTML = `<p class="empty">${t("empty_effects", loc)}</p>`;
+    designGuidePanelEl.innerHTML = `<p class="empty">${t("empty_design_guide", loc)}</p>`;
     summaryEl.textContent = state.selectionCount > 0
       ? t("summary_no_tokens", loc, { nodes: state.selectionCount })
       : "";
@@ -634,7 +653,6 @@ function render() {
     return acc;
   }, {});
 
-  const loc = state.locale;
   const modeLabel = state.forcedShowAll
     ? t("summary_no_repeated_all", loc)
     : repeatedOnlyEl.checked
@@ -650,42 +668,54 @@ function render() {
     mode: modeLabel
   });
 
-  if (visibleItems.length === 0) {
-    itemsEl.innerHTML = `<p class="empty">${t("empty_repeated", loc)}</p>`;
+  const grouped = groupItemsByType(visibleItems);
+
+  // ── Colors tab ──
+  colorsItemsEl.innerHTML = "";
+  if (grouped.colors.length > 0) {
+    renderGroupInto("colors", grouped.colors, colorsItemsEl);
   } else {
-    itemsEl.innerHTML = "";
-    const grouped = groupItemsByType(visibleItems);
-    renderGroup("colors", grouped.colors);
-    renderGroup("texts", grouped.texts);
-    renderGroup("sizes", grouped.sizes);
+    colorsItemsEl.innerHTML = `<p class="empty">${t("empty_colors", loc)}</p>`;
+  }
+  colorsStylesEl.innerHTML = "";
+  state.colorStyles.forEach((item) => colorsStylesEl.appendChild(buildColorStyleCard(item)));
+
+  // ── Typography tab ──
+  typographyItemsEl.innerHTML = "";
+  if (grouped.texts.length > 0) {
+    renderGroupInto("texts", grouped.texts, typographyItemsEl);
+  }
+  typographyStylesEl.innerHTML = "";
+  if (state.textStyles.length > 0) {
+    state.textStyles.forEach((item) => typographyStylesEl.appendChild(buildTextStyleCard(item)));
+  } else if (grouped.texts.length === 0) {
+    typographyItemsEl.innerHTML = `<p class="empty">${t("empty_typography", loc)}</p>`;
   }
 
-  colorStylesEl.innerHTML = "";
-  if (state.colorStyles.length === 0) {
-    colorStylesEl.innerHTML = `<p class="empty">${t("empty_color_styles", loc)}</p>`;
+  // ── Sizes tab ──
+  sizesItemsEl.innerHTML = "";
+  if (grouped.sizes.length > 0) {
+    renderGroupInto("sizes", grouped.sizes, sizesItemsEl);
   } else {
-    state.colorStyles.forEach((item) => colorStylesEl.appendChild(buildColorStyleCard(item)));
+    sizesItemsEl.innerHTML = `<p class="empty">${t("empty_sizes", loc)}</p>`;
   }
 
-  effectStylesEl.innerHTML = "";
-  if (state.effectStyles.length === 0) {
-    effectStylesEl.innerHTML = `<p class="empty">${t("empty_effect_styles", loc)}</p>`;
+  // ── Effects tab ──
+  effectsStylesEl.innerHTML = "";
+  if (state.effectStyles.length > 0) {
+    state.effectStyles.forEach((item) => effectsStylesEl.appendChild(buildEffectStyleCard(item)));
   } else {
-    state.effectStyles.forEach((item) => effectStylesEl.appendChild(buildEffectStyleCard(item)));
+    effectsStylesEl.innerHTML = `<p class="empty">${t("empty_effects", loc)}</p>`;
   }
 
-  textStylesEl.innerHTML = "";
-  if (state.textStyles.length === 0) {
-    textStylesEl.innerHTML = `<p class="empty">${t("empty_text_styles", loc)}</p>`;
-  } else {
-    state.textStyles.forEach((item) => textStylesEl.appendChild(buildTextStyleCard(item)));
-  }
+  // ── Design Guide tab ──
+  designGuidePanelEl.innerHTML = `<p class="empty">${t("empty_design_guide", loc)}</p>`;
 
   syncStepUI();
 }
 
 // ── Group render ──────────────────────────────────────────────────────────────
-function renderGroup(groupKey: "colors" | "texts" | "sizes", items: UiItem[]) {
+function renderGroupInto(groupKey: "colors" | "texts" | "sizes", items: UiItem[], container: HTMLDivElement) {
   if (items.length === 0) return;
 
   const titleMap: Record<"colors" | "texts" | "sizes", string> = {
@@ -724,7 +754,7 @@ function renderGroup(groupKey: "colors" | "texts" | "sizes", items: UiItem[]) {
 
   section.appendChild(header);
   section.appendChild(body);
-  itemsEl.appendChild(section);
+  container.appendChild(section);
 }
 
 // ── Card builders ─────────────────────────────────────────────────────────────
@@ -1117,7 +1147,7 @@ function getSelectedActionTargets(): ActionTarget[] {
 function renderTextStyleDiagnostics() {
   const loc = state.locale;
   const { textNodesFound, styledSegmentsRead, styleCandidatesGenerated } = state.textStyleDiagnostics;
-  textStylesDiagnosticsEl.innerHTML = `
+  typographyDiagnosticsEl.innerHTML = `
     <span><strong>${textNodesFound}</strong> ${escapeHtml(t("diag_text_nodes", loc))}</span>
     <span><strong>${styledSegmentsRead}</strong> ${escapeHtml(t("diag_segments", loc))}</span>
     <span><strong>${styleCandidatesGenerated}</strong> ${escapeHtml(t("diag_candidates", loc))}</span>

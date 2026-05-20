@@ -974,28 +974,35 @@
         <!-- Step 2: Review -->
         <div class="step-panel step-panel--review" data-step="2" id="stepPanel2">
           <nav class="tabs" role="tablist" aria-label="Token types">
-            <button class="tab" role="tab" aria-selected="true" aria-controls="tabPanelVariables" data-tab="variables" data-active="true" id="tabVariables">Variables</button>
-            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelTextStyles" data-tab="text-styles" id="tabTextStyles">Text styles</button>
-            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelColorStyles" data-tab="color-styles" id="tabColorStyles">Color styles</button>
-            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelEffectStyles" data-tab="effect-styles" id="tabEffectStyles">Effect styles</button>
+            <button class="tab" role="tab" aria-selected="true" aria-controls="tabPanelColors" data-tab="colors" data-active="true" id="tabColors" data-i18n="tab_colors">Colors</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelTypography" data-tab="typography" tabindex="-1" id="tabTypography" data-i18n="tab_typography">Typography</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelSizes" data-tab="sizes" tabindex="-1" id="tabSizes" data-i18n="tab_sizes">Sizes</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelEffects" data-tab="effects" tabindex="-1" id="tabEffects" data-i18n="tab_effects">Effects</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="tabPanelDesignGuide" data-tab="design-guide" tabindex="-1" id="tabDesignGuide" data-i18n="tab_design_guide">Design Guide</button>
           </nav>
 
           <div class="tab-panels-wrapper">
-            <div class="tab-panel" role="tabpanel" aria-labelledby="tabVariables" data-tab="variables" data-active="true" id="tabPanelVariables">
-              <div class="items" id="items"></div>
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabColors" data-tab="colors" data-active="true" id="tabPanelColors">
+              <div class="items" id="colorsItems"></div>
+              <div class="items" id="colorsStyles"></div>
             </div>
 
-            <div class="tab-panel" role="tabpanel" aria-labelledby="tabTextStyles" data-tab="text-styles" id="tabPanelTextStyles">
-              <div class="diagnostics" id="textStylesDiagnostics"></div>
-              <div class="items" id="textStyles"></div>
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabTypography" data-tab="typography" id="tabPanelTypography">
+              <div class="diagnostics" id="typographyDiagnostics"></div>
+              <div class="items" id="typographyItems"></div>
+              <div class="items" id="typographyStyles"></div>
             </div>
 
-            <div class="tab-panel" role="tabpanel" aria-labelledby="tabColorStyles" data-tab="color-styles" id="tabPanelColorStyles">
-              <div class="items" id="colorStyles"></div>
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabSizes" data-tab="sizes" id="tabPanelSizes">
+              <div class="items" id="sizesItems"></div>
             </div>
 
-            <div class="tab-panel" role="tabpanel" aria-labelledby="tabEffectStyles" data-tab="effect-styles" id="tabPanelEffectStyles">
-              <div class="items" id="effectStyles"></div>
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabEffects" data-tab="effects" id="tabPanelEffects">
+              <div class="items" id="effectsStyles"></div>
+            </div>
+
+            <div class="tab-panel" role="tabpanel" aria-labelledby="tabDesignGuide" data-tab="design-guide" id="tabPanelDesignGuide">
+              <div class="design-guide-panel" id="designGuidePanel"></div>
             </div>
           </div>
         </div>
