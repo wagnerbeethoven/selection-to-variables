@@ -49,9 +49,9 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_scan_loading: "Scanning...",
 
     // Tabs
-    tab_colors: "Colors",
+    tab_colors: "Palette",
     tab_typography: "Typography",
-    tab_sizes: "Sizes",
+    tab_sizes: "Scale",
     tab_effects: "Effects",
     tab_design_guide: "Design Guide",
 
@@ -100,10 +100,10 @@ const messages: Record<Locale, Record<string, string>> = {
     toast_no_repeated: "No repeated tokens found. Showing all scanned tokens.",
     toast_plugin_ready: "Plugin ready.",
 
-    // Group headers
-    group_colors: "Colors",
-    group_texts: "Texts",
-    group_sizes: "Sizes",
+    // Group headers (variable types)
+    group_colors: "Palette",
+    group_texts: "Content",
+    group_sizes: "Scale",
 
     // Style type badges
     badge_text_style: "Text style",
@@ -211,9 +211,9 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_scan: "Escanear seleção",
     btn_scan_loading: "Escaneando...",
 
-    tab_colors: "Cores",
+    tab_colors: "Paleta",
     tab_typography: "Tipografia",
-    tab_sizes: "Tamanhos",
+    tab_sizes: "Escala",
     tab_effects: "Efeitos",
     tab_design_guide: "Guia de Design",
 
@@ -257,9 +257,9 @@ const messages: Record<Locale, Record<string, string>> = {
     toast_no_repeated: "Nenhum token repetido. Exibindo todos.",
     toast_plugin_ready: "Plugin pronto.",
 
-    group_colors: "Cores",
-    group_texts: "Textos",
-    group_sizes: "Tamanhos",
+    group_colors: "Paleta",
+    group_texts: "Conteúdo",
+    group_sizes: "Escala",
 
     badge_text_style: "Estilo de texto",
     badge_color_style: "Estilo de cor",
@@ -358,9 +358,9 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_scan: "Escanear selección",
     btn_scan_loading: "Escaneando...",
 
-    tab_colors: "Colores",
+    tab_colors: "Paleta",
     tab_typography: "Tipografía",
-    tab_sizes: "Tamaños",
+    tab_sizes: "Escala",
     tab_effects: "Efectos",
     tab_design_guide: "Guía de Diseño",
 
@@ -404,9 +404,9 @@ const messages: Record<Locale, Record<string, string>> = {
     toast_no_repeated: "No se encontraron tokens repetidos. Mostrando todos.",
     toast_plugin_ready: "Plugin listo.",
 
-    group_colors: "Colores",
-    group_texts: "Textos",
-    group_sizes: "Tamaños",
+    group_colors: "Paleta",
+    group_texts: "Contenido",
+    group_sizes: "Escala",
 
     badge_text_style: "Estilo de texto",
     badge_color_style: "Estilo de color",

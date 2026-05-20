@@ -547,15 +547,16 @@ function collectTextItems(node: TextNode, items: Map<string, RawItem>, trail: st
   }
 
   if (typeof node.fontSize === "number") {
-    const key = `font-size:${node.fontSize}`;
+    const sz = round(node.fontSize);
+    const key = `typography:${sz}`;
     upsertItem(items, key, {
       id: key,
       group: "sizes",
       category: "typography/font-size",
       type: "FLOAT",
-      name: buildSizeTokenName("typography/font-size", node.fontSize),
-      value: round(node.fontSize),
-      description: `${round(node.fontSize)}px`,
+      name: buildSizeTokenName("typography/font-size", sz),
+      value: sz,
+      description: `${sz}px`,
       occurrences: 1,
       sources: [trail.join(" > ")]
     });
@@ -563,7 +564,7 @@ function collectTextItems(node: TextNode, items: Map<string, RawItem>, trail: st
 
   if (node.lineHeight !== figma.mixed && node.lineHeight.unit === "PIXELS") {
     const value = round(node.lineHeight.value);
-    const key = `line-height:${value}`;
+    const key = `typography-lh:${value}`;
     upsertItem(items, key, {
       id: key,
       group: "sizes",
@@ -652,14 +653,13 @@ function collectAutoLayoutSpacing(node: SceneNode, items: Map<string, RawItem>, 
 
   if ("itemSpacing" in node && typeof node.itemSpacing === "number") {
     const gap = round(node.itemSpacing);
-    const category = "layout/gap";
-    const key = `gap:${gap}`;
+    const key = `spacing:${gap}`;          // unified key — merges with padding of same value
     upsertItem(items, key, {
       id: key,
       group: "sizes",
-      category,
+      category: "layout/gap",
       type: "FLOAT",
-      name: buildSizeTokenName(category, gap),
+      name: buildSizeTokenName("layout/gap", gap),
       value: gap,
       description: `${gap}px`,
       occurrences: 1,
@@ -674,20 +674,19 @@ function collectAutoLayoutSpacing(node: SceneNode, items: Map<string, RawItem>, 
     ["left", node.paddingLeft]
   ] as const;
 
-  for (const [side, rawValue] of paddings) {
+  for (const [_side, rawValue] of paddings) {
     if (typeof rawValue !== "number" || rawValue <= 0) {
       continue;
     }
 
     const value = round(rawValue);
-    const category = `layout/padding/${side}`;
-    const key = `padding-${side}:${value}`;
+    const key = `spacing:${value}`;        // unified key — all padding sides merge by value
     upsertItem(items, key, {
       id: key,
       group: "sizes",
-      category,
+      category: "layout/gap",              // use gap category so name = spacing/N
       type: "FLOAT",
-      name: buildSizeTokenName(category, value),
+      name: buildSizeTokenName("layout/gap", value),
       value,
       description: `${value}px`,
       occurrences: 1,
