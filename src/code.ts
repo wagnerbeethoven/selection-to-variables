@@ -4,6 +4,7 @@ import {
   inferRole,
   inferState,
   normalizeNumber,
+  rgbaToPaletteName,
   round,
   slugify,
   type VariableKind,
@@ -518,7 +519,7 @@ function collectColorItems(node: SceneNode, items: Map<string, RawItem>, trail: 
       group: "colors",
       category,
       type: "COLOR",
-      name: buildColorTokenName(category, trail),
+      name: buildColorTokenName(value),
       value,
       description: rgbaLabel(value),
       occurrences: 1,
@@ -786,40 +787,42 @@ function getSemanticContext(node: SceneNode, trail: string[]): string {
   return `${node.type} ${trail.join(" ")}`.toLowerCase();
 }
 
-function buildColorTokenName(category: string, trail: string[]): string {
-  const state = inferState(trail.join(" ").toLowerCase());
-  return `color/${category}/${state}`;
+// Variables use flat, category-only names.
+// Styles (buildColorStyleName) use full semantic paths — kept separate.
+
+function buildColorTokenName(value: RgbaValue): string {
+  return `colors/${rgbaToPaletteName(value.r, value.g, value.b, value.a)}`;
 }
 
-function buildTextTokenName(category: string, text: string, fallbackName: string): string {
-  const content = slugify(text).slice(0, 24) || slugify(fallbackName).slice(0, 24) || "content";
-  return `content/${category}/${content}`;
+function buildTextTokenName(_category: string, text: string, fallbackName: string): string {
+  const slug = slugify(text).slice(0, 32) || slugify(fallbackName).slice(0, 32) || "text";
+  return `content/${slug}`;
 }
 
 function buildSizeTokenName(category: string, value: number): string {
-  return `${dtcgSizePath(category)}/${normalizeNumber(round(value))}`;
+  return `${flatSizePath(category)}/${normalizeNumber(round(value))}`;
 }
 
-function dtcgSizePath(category: string): string {
+function flatSizePath(category: string): string {
   const map: Record<string, string> = {
-    "typography/font-size": "typography/font-size",
-    "typography/line-height": "typography/line-height",
-    "layout/gap": "spacing/gap",
-    "layout/padding/top": "spacing/padding/top",
-    "layout/padding/right": "spacing/padding/right",
-    "layout/padding/bottom": "spacing/padding/bottom",
-    "layout/padding/left": "spacing/padding/left",
-    "shape/radius": "border-radius",
-    "dimension/width": "dimension/width",
-    "dimension/height": "dimension/height",
-    "icon/width": "dimension/icon/width",
-    "icon/height": "dimension/icon/height",
-    "component/width": "dimension/component/width",
-    "component/height": "dimension/component/height",
-    "media/width": "dimension/media/width",
-    "media/height": "dimension/media/height",
-    "layout/width": "dimension/layout/width",
-    "layout/height": "dimension/layout/height",
+    "typography/font-size":    "typography",
+    "typography/line-height":  "typography/line-height",
+    "layout/gap":              "spacing",
+    "layout/padding/top":      "spacing",
+    "layout/padding/right":    "spacing",
+    "layout/padding/bottom":   "spacing",
+    "layout/padding/left":     "spacing",
+    "shape/radius":            "border-radius",
+    "dimension/width":         "dimension",
+    "dimension/height":        "dimension",
+    "icon/width":              "dimension",
+    "icon/height":             "dimension",
+    "component/width":         "dimension",
+    "component/height":        "dimension",
+    "media/width":             "dimension",
+    "media/height":            "dimension",
+    "layout/width":            "dimension",
+    "layout/height":           "dimension",
   };
   return map[category] ?? category;
 }

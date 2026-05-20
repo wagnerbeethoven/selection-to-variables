@@ -1,4 +1,4 @@
-import { slugify, type VariableKind } from "./shared";
+import { slugify, rgbaToPaletteName, type VariableKind } from "./shared";
 
 export type ExportableValue =
   | {
@@ -137,50 +137,7 @@ export function buildExportFilename(collectionName: string): string {
   return `${slugify(collectionName || "raw-variables")}.tokens.json`;
 }
 
-function rgbaToPaletteName(r: number, g: number, b: number, a: number): string {
-  const r255 = Math.round(r * 255);
-  const g255 = Math.round(g * 255);
-  const b255 = Math.round(b * 255);
-
-  const rn = r255 / 255;
-  const gn = g255 / 255;
-  const bn = b255 / 255;
-
-  const max = Math.max(rn, gn, bn);
-  const min = Math.min(rn, gn, bn);
-  const l = (max + min) / 2;
-
-  const alphaSuffix = a < 1 ? `-a${Math.round(a * 100)}` : "";
-
-  if (max === min) {
-    if (l <= 0.05) return `black${alphaSuffix}`;
-    if (l >= 0.95) return `white${alphaSuffix}`;
-    const shade = Math.max(100, Math.min(900, Math.round(l * 8) * 100 + 100));
-    return `gray-${shade}${alphaSuffix}`;
-  }
-
-  const d = max - min;
-  let h = 0;
-  if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
-  else if (max === gn) h = ((bn - rn) / d + 2) / 6;
-  else h = ((rn - gn) / d + 4) / 6;
-
-  const hDeg = Math.round(h * 360);
-
-  const family =
-    hDeg < 15  ? "red"    :
-    hDeg < 45  ? "orange" :
-    hDeg < 65  ? "yellow" :
-    hDeg < 155 ? "green"  :
-    hDeg < 195 ? "teal"   :
-    hDeg < 255 ? "blue"   :
-    hDeg < 285 ? "indigo" :
-    hDeg < 330 ? "purple" :
-    hDeg < 350 ? "pink"   : "red";
-
-  const shade = Math.max(100, Math.min(900, Math.round((1 - l) * 8) * 100 + 100));
-  return `${family}-${shade}${alphaSuffix}`;
-}
+// rgbaToPaletteName imported from shared.ts
 
 function toHex(value: number): string {
   return value.toString(16).padStart(2, "0");
