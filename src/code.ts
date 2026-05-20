@@ -2163,336 +2163,403 @@ function hasUniformCornerRadius(node: SceneNode): node is SceneNode & CornerMixi
 
 // ── Design System Frame Generator ─────────────────────────────────────────────
 
+const DS_W = 1400;
+const DS_P = 80;
+const DS_CW = DS_W - DS_P * 2; // 1240 — content width inside padding
+
 async function generateDesignSystem(payload: GenerateDesignSystemPayload) {
   await figma.loadFontAsync({ family: "Inter", style: "Regular" });
   await figma.loadFontAsync({ family: "Inter", style: "Bold" });
   await figma.loadFontAsync({ family: "Inter", style: "Medium" });
 
-  const root = dsFrame("Design System", "VERTICAL", 48, 48);
-  root.fills = [{ type: "SOLID", color: { r: 0.976, g: 0.976, b: 0.976 } }];
-  root.x = Math.round(figma.viewport.center.x - 480);
-  root.y = Math.round(figma.viewport.center.y - 300);
+  const cx = Math.round(figma.viewport.center.x - DS_W / 2);
+  let cy = Math.round(figma.viewport.center.y - 300);
+  const GAP = 48;
+  const frames: FrameNode[] = [];
+
+  const place = (f: FrameNode) => {
+    f.x = cx; f.y = cy;
+    figma.currentPage.appendChild(f);
+    cy += f.height + GAP;
+    frames.push(f);
+  };
 
   const hasColors = payload.colorItems.length > 0 || payload.colorStyles.length > 0;
   const hasType   = payload.textStyles.length > 0;
-  const hasSizes  = payload.sizeItems.length > 0;
+  const hasRadius = payload.sizeItems.some((s) => s.category === "shape/radius");
+  const hasSpacing = payload.sizeItems.some((s) =>
+    s.category.startsWith("layout/gap") || s.category.startsWith("layout/padding")
+  );
+  const hasSizes  = hasRadius || hasSpacing;
   const hasFx     = payload.effectStyles.length > 0;
 
-  if (hasColors)  root.appendChild(await buildDsColorsSection(payload));
-  if (hasType)    root.appendChild(await buildDsTypographySection(payload));
-  if (hasSizes)   root.appendChild(buildDsSizesSection(payload));
-  if (hasFx)      root.appendChild(buildDsEffectsSection(payload));
+  if (hasColors)          place(await dsBuildColors(payload));
+  if (hasType)            place(await dsBuildTypography(payload));
+  if (hasSizes || hasFx)  place(dsBuildSpacingAndEffects(payload));
 
-  figma.currentPage.appendChild(root);
-  figma.viewport.scrollAndZoomIntoView([root]);
+  figma.viewport.scrollAndZoomIntoView(frames);
   figma.notify(t("backend_design_system_generated", currentLocale));
   postFeedback("success", t("backend_design_system_generated", currentLocale));
 }
 
-// ── Section builders ──────────────────────────────────────────────────────────
+// ── Section builders (new) ────────────────────────────────────────────────────
 
-async function buildDsColorsSection(payload: GenerateDesignSystemPayload): Promise<FrameNode> {
-  const section = dsSection("PALETA & TOKENS", "Colors");
 
-  // ── Palette swatches grid ──
-  if (payload.colorItems.length > 0 || payload.colorStyles.length > 0) {
-    const swatchLabel = dsText("Palette", 11, "Medium", { r: 0.22, g: 0.55, b: 0.55 });
-    section.appendChild(swatchLabel);
+// ── Colors ────────────────────────────────────────────────────────────────────
 
-    const grid = dsFrame("swatches", "HORIZONTAL", 12, 0);
+async function dsBuildColors(payload: GenerateDesignSystemPayload): Promise<FrameNode> {
+  const frame = dsSectionFrame("Colors");
+  dsSectionHeader(frame, "PALETA & TOKENS", "Cores");
+
+  const all = [
+    ...payload.colorItems.map((c) => ({ name: c.name, value: c.value })),
+    ...payload.colorStyles.map((c) => ({ name: c.name, value: c.value }))
+  ];
+
+  if (all.length > 0) {
+    frame.appendChild(dsSubLabel("Paleta"));
+    const grid = dsAutoFrame("swatches", "HORIZONTAL", 16);
     grid.layoutWrap = "WRAP";
-    grid.counterAxisSpacing = 12;
-    grid.fills = [];
+    grid.counterAxisSpacing = 16;
 
-    const all = [
-      ...payload.colorItems.map((c) => ({ name: c.name, value: c.value })),
-      ...payload.colorStyles.map((c) => ({ name: c.name, value: c.value }))
-    ];
-    for (const item of all) grid.appendChild(buildDsColorSwatch(item.name, item.value));
-    section.appendChild(grid);
+    for (const item of all) {
+      const card = dsAutoFrame(item.name, "VERTICAL", 8);
+      const rect = figma.createRectangle();
+      rect.name = "swatch";
+      rect.resize(180, 110);
+      rect.cornerRadius = 8;
+      rect.fills = [{ type: "SOLID", color: { r: item.value.r, g: item.value.g, b: item.value.b }, opacity: item.value.a }];
+      rect.strokes = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, opacity: 0.07 }];
+      rect.strokeWeight = 1;
+
+      const shortName = item.name.split("/").pop() || item.name;
+      const lbl = dsT(shortName, 11, "Medium", DS_DARK);
+      lbl.textAutoResize = "WIDTH_AND_HEIGHT";
+
+      const hexLbl = dsT(dsHex(item.value), 10, "Regular", DS_MUTED);
+      hexLbl.textAutoResize = "WIDTH_AND_HEIGHT";
+
+      card.appendChild(rect);
+      card.appendChild(lbl);
+      card.appendChild(hexLbl);
+      grid.appendChild(card);
+    }
+    frame.appendChild(grid);
   }
 
-  // ── Token table ──
   if (payload.colorItems.length > 0) {
-    const tableLabel = dsText("Tokens", 11, "Medium", { r: 0.22, g: 0.55, b: 0.55 });
-    section.appendChild(tableLabel);
+    frame.appendChild(dsSubLabel("Tokens"));
 
-    const table = dsFrame("token-table", "VERTICAL", 0, 0);
-    table.fills = [];
-
-    // Header row
-    const header = dsTokenRow(
-      dsText("TOKEN", 9, "Medium", { r: 0.6, g: 0.6, b: 0.6 }),
-      dsText("VALUE", 9, "Medium", { r: 0.6, g: 0.6, b: 0.6 }),
-      dsText("CATEGORY", 9, "Medium", { r: 0.6, g: 0.6, b: 0.6 }),
-      true
-    );
-    table.appendChild(header);
+    const header = dsTableRow(true, false);
+    header.appendChild(dsTableCell(dsT("TOKEN", 9, "Medium", DS_MUTED), 380));
+    header.appendChild(dsTableCell(dsT("VALOR", 9, "Medium", DS_MUTED), 200));
+    header.appendChild(dsTableCell(dsT("CATEGORIA", 9, "Medium", DS_MUTED), 200));
+    frame.appendChild(header);
 
     payload.colorItems.forEach((item, i) => {
-      const hex = dsRgbaToHex(item.value);
       const swatch = figma.createRectangle();
-      swatch.resize(12, 12);
-      swatch.cornerRadius = 3;
+      swatch.resize(14, 14);
+      swatch.cornerRadius = 4;
       swatch.fills = [{ type: "SOLID", color: { r: item.value.r, g: item.value.g, b: item.value.b }, opacity: item.value.a }];
 
-      const valueFrame = dsFrame("val", "HORIZONTAL", 6, 0);
-      valueFrame.counterAxisAlignItems = "CENTER";
-      valueFrame.fills = [];
-      valueFrame.appendChild(swatch);
-      valueFrame.appendChild(dsText(hex, 9, "Regular", { r: 0.2, g: 0.2, b: 0.2 }));
+      const valCell = dsAutoFrame("val", "HORIZONTAL", 8);
+      valCell.counterAxisAlignItems = "CENTER";
+      valCell.appendChild(swatch);
+      valCell.appendChild(dsT(dsHex(item.value), 10, "Regular", DS_DARK));
 
-      const row = dsTokenRow(
-        dsText(item.name, 9, "Regular", { r: 0.15, g: 0.15, b: 0.15 }),
-        valueFrame,
-        dsText(item.name.split("/")[1] || "—", 9, "Regular", { r: 0.5, g: 0.5, b: 0.5 }),
-        false,
-        i % 2 === 1
-      );
-      table.appendChild(row);
+      const catParts = item.name.split("/");
+      const cat = catParts.length > 1 ? catParts[1] : "colors";
+
+      const row = dsTableRow(false, i % 2 === 1);
+      row.appendChild(dsTableCell(dsT(item.name, 10, "Regular", DS_DARK), 380));
+      row.appendChild(dsTableCell(valCell, 200));
+      row.appendChild(dsTableCell(dsT(cat, 10, "Regular", DS_MUTED), 200));
+      frame.appendChild(row);
     });
-    section.appendChild(table);
   }
 
-  return section;
+  return frame;
 }
 
-function buildDsColorSwatch(name: string, value: RgbaValue): FrameNode {
-  const card = dsFrame(name, "VERTICAL", 6, 0);
+// ── Typography ────────────────────────────────────────────────────────────────
 
-  const rect = figma.createRectangle();
-  rect.name = "swatch";
-  rect.resize(120, 90);
-  rect.cornerRadius = 8;
-  rect.fills = [{ type: "SOLID", color: { r: value.r, g: value.g, b: value.b }, opacity: value.a }];
-  rect.strokes = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, opacity: 0.08 }];
-  rect.strokeWeight = 1;
+async function dsBuildTypography(payload: GenerateDesignSystemPayload): Promise<FrameNode> {
+  const frame = dsSectionFrame("Typography");
+  dsSectionHeader(frame, "FONTES & ESCALA", "Tipografia");
 
-  const shortName = name.split("/").pop() || name;
-  const labelNode = dsText(shortName, 10, "Medium", { r: 0.1, g: 0.1, b: 0.1 });
-  labelNode.textAutoResize = "WIDTH_AND_HEIGHT";
+  const families = new Map<string, FontName>();
+  for (const s of payload.textStyles) {
+    const key = s.signature.fontName.family;
+    if (!families.has(key)) families.set(key, s.signature.fontName as FontName);
+  }
 
-  const hex = dsRgbaToHex(value);
-  const hexNode = dsText(hex, 9, "Regular", { r: 0.55, g: 0.55, b: 0.55 });
-  hexNode.textAutoResize = "WIDTH_AND_HEIGHT";
+  if (families.size > 0) {
+    frame.appendChild(dsSubLabel("Famílias tipográficas"));
+    const familyRow = dsAutoFrame("families", "HORIZONTAL", 24);
 
-  card.appendChild(rect);
-  card.appendChild(labelNode);
-  card.appendChild(hexNode);
-  return card;
+    for (const fn of families.values()) {
+      let loaded = true;
+      try { await figma.loadFontAsync(fn); } catch { loaded = false; }
+
+      const card = dsAutoFrame(fn.family, "VERTICAL", 12);
+      card.paddingTop = card.paddingBottom = card.paddingLeft = card.paddingRight = 24;
+      card.fills = [{ type: "SOLID", color: { r: 0.97, g: 0.98, b: 0.99 } }];
+      card.cornerRadius = 8;
+      card.strokes = [{ type: "SOLID", color: { r: 0.88, g: 0.92, b: 0.96 } }];
+      card.strokeWeight = 1;
+      card.counterAxisSizingMode = "FIXED";
+      card.resize(580, 100);
+      card.primaryAxisSizingMode = "AUTO";
+
+      if (loaded) {
+        const big = figma.createText();
+        big.fontName = fn;
+        big.fontSize = 40;
+        big.characters = fn.family;
+        big.fills = [{ type: "SOLID", color: DS_DARK }];
+        big.textAutoResize = "WIDTH_AND_HEIGHT";
+        card.appendChild(big);
+      } else {
+        card.appendChild(dsT(fn.family, 32, "Bold", DS_DARK));
+      }
+      card.appendChild(dsT(fn.style, 11, "Regular", DS_MUTED));
+      familyRow.appendChild(card);
+    }
+    frame.appendChild(familyRow);
+  }
+
+  if (payload.textStyles.length > 0) {
+    frame.appendChild(dsSubLabel("Escala tipográfica"));
+
+    const header = dsTableRow(true, false);
+    header.appendChild(dsTableCell(dsT("AMOSTRA", 9, "Medium", DS_MUTED), 280));
+    header.appendChild(dsTableCell(dsT("NOME", 9, "Medium", DS_MUTED), 180));
+    header.appendChild(dsTableCell(dsT("FONTE", 9, "Medium", DS_MUTED), 160));
+    header.appendChild(dsTableCell(dsT("TAMANHO", 9, "Medium", DS_MUTED), 100));
+    header.appendChild(dsTableCell(dsT("PESO", 9, "Medium", DS_MUTED), 100));
+    header.appendChild(dsTableCell(dsT("LINE HEIGHT", 9, "Medium", DS_MUTED), 120));
+    frame.appendChild(header);
+
+    for (let i = 0; i < payload.textStyles.length; i++) {
+      const style = payload.textStyles[i];
+      let loaded = true;
+      try { await figma.loadFontAsync(style.signature.fontName as FontName); } catch { loaded = false; }
+
+      const shortName = style.name.split("/").pop() || style.name;
+      const clampedSize = Math.min(style.signature.fontSize, 56);
+
+      let sampleNode: TextNode;
+      if (loaded) {
+        sampleNode = figma.createText();
+        sampleNode.fontName = style.signature.fontName as FontName;
+        sampleNode.fontSize = clampedSize;
+        sampleNode.characters = shortName;
+        sampleNode.fills = [{ type: "SOLID", color: DS_DARK }];
+        sampleNode.textAutoResize = "WIDTH_AND_HEIGHT";
+      } else {
+        sampleNode = dsT(shortName, Math.min(clampedSize, 24), "Regular", DS_DARK);
+      }
+
+      const lhVal = style.signature.lineHeight;
+      const lhStr = lhVal.unit === "AUTO" ? "auto"
+        : `${lhVal.value ?? 0}${lhVal.unit === "PIXELS" ? "px" : "%"}`;
+
+      const row = dsTableRow(false, i % 2 === 1);
+      row.counterAxisAlignItems = "CENTER";
+      row.appendChild(dsTableCell(sampleNode, 280));
+      row.appendChild(dsTableCell(dsT(shortName, 10, "Regular", DS_DARK), 180));
+      row.appendChild(dsTableCell(dsT(style.signature.fontName.family, 10, "Regular", DS_MUTED), 160));
+      row.appendChild(dsTableCell(dsT(`${style.signature.fontSize}px`, 10, "Regular", DS_MUTED), 100));
+      row.appendChild(dsTableCell(dsT(style.signature.fontName.style, 10, "Regular", DS_MUTED), 100));
+      row.appendChild(dsTableCell(dsT(lhStr, 10, "Regular", DS_MUTED), 120));
+      frame.appendChild(row);
+    }
+  }
+
+  return frame;
 }
 
-function dsTokenRow(col1: SceneNode, col2: SceneNode, col3: SceneNode, isHeader: boolean, zebra = false): FrameNode {
-  const row = dsFrame("row", "HORIZONTAL", 0, 0);
-  row.paddingTop = row.paddingBottom = 8;
+// ── Spacing & Effects ─────────────────────────────────────────────────────────
+
+function dsBuildSpacingAndEffects(payload: GenerateDesignSystemPayload): FrameNode {
+  const frame = dsSectionFrame("Spacing & Effects");
+  dsSectionHeader(frame, "ESPAÇAMENTO & EFEITOS", "Espaçamento");
+
+  const radiusItems = payload.sizeItems
+    .filter((s) => s.category === "shape/radius")
+    .sort((a, b) => a.value - b.value);
+
+  const spacingItems = payload.sizeItems
+    .filter((s) => s.category.startsWith("layout/gap") || s.category.startsWith("layout/padding"))
+    .sort((a, b) => a.value - b.value);
+
+  if (radiusItems.length > 0) {
+    frame.appendChild(dsSubLabel("Border Radius"));
+    const row = dsAutoFrame("radius-demos", "HORIZONTAL", 24);
+    row.counterAxisAlignItems = "MAX";
+
+    for (const item of radiusItems) {
+      const card = dsAutoFrame(item.name, "VERTICAL", 8);
+      card.counterAxisAlignItems = "CENTER";
+      const sz = Math.min(Math.max(item.value * 2 + 24, 32), 96);
+      const rect = figma.createRectangle();
+      rect.resize(sz, sz);
+      rect.cornerRadius = item.value;
+      rect.fills = [{ type: "SOLID", color: DS_TEAL, opacity: 0.15 }];
+      rect.strokes = [{ type: "SOLID", color: DS_TEAL }];
+      rect.strokeWeight = 1.5;
+      const lbl = dsT(`${item.value}px`, 9, "Regular", DS_MUTED);
+      lbl.textAutoResize = "WIDTH_AND_HEIGHT";
+      card.appendChild(rect);
+      card.appendChild(lbl);
+      row.appendChild(card);
+    }
+    frame.appendChild(row);
+  }
+
+  if (spacingItems.length > 0) {
+    frame.appendChild(dsSubLabel("Espaçamento"));
+    const MAX_BAR = DS_CW * 0.55;
+    const maxVal = Math.max(...spacingItems.map((s) => s.value), 1);
+
+    for (let i = 0; i < spacingItems.length; i++) {
+      const item = spacingItems[i];
+      const row = dsTableRow(false, i % 2 === 1);
+      row.counterAxisAlignItems = "CENTER";
+      const nameCell = dsTableCell(
+        dsT(item.name.split("/").pop() || item.name, 9, "Regular", DS_DARK), 160
+      );
+      const barW = Math.max(4, Math.round((item.value / maxVal) * MAX_BAR));
+      const barCell = dsAutoFrame("bar-cell", "HORIZONTAL", 12);
+      barCell.counterAxisAlignItems = "CENTER";
+      const bar = figma.createRectangle();
+      bar.resize(barW, 14);
+      bar.cornerRadius = 3;
+      bar.fills = [{ type: "SOLID", color: DS_TEAL }];
+      barCell.appendChild(bar);
+      barCell.appendChild(dsT(`${item.value}px`, 9, "Regular", DS_MUTED));
+      row.appendChild(nameCell);
+      row.appendChild(dsTableCell(barCell, DS_CW - 160 - 32));
+      frame.appendChild(row);
+    }
+  }
+
+  if (payload.effectStyles.length > 0) {
+    frame.appendChild(dsSubLabel("Sombras & Efeitos"));
+    const grid = dsAutoFrame("effects", "HORIZONTAL", 24);
+    grid.layoutWrap = "WRAP";
+    grid.counterAxisSpacing = 24;
+
+    for (const item of payload.effectStyles) {
+      const card = dsAutoFrame(item.name, "VERTICAL", 12);
+      card.paddingTop = card.paddingBottom = card.paddingLeft = card.paddingRight = 20;
+      card.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+      card.cornerRadius = 8;
+      card.strokes = [{ type: "SOLID", color: { r: 0.9, g: 0.9, b: 0.9 } }];
+      card.strokeWeight = 1;
+      card.counterAxisAlignItems = "CENTER";
+
+      const preview = figma.createRectangle();
+      preview.resize(100, 100);
+      preview.cornerRadius = 8;
+      preview.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+      const fx = item.effects.map(buildEffectFromRecord).filter((e): e is Effect => e !== null);
+      if (fx.length > 0) preview.effects = fx;
+
+      const shortName = item.name.split("/").pop() || item.name;
+      const lbl = dsT(shortName, 10, "Medium", DS_DARK);
+      lbl.textAutoResize = "WIDTH_AND_HEIGHT";
+      card.appendChild(preview);
+      card.appendChild(lbl);
+      grid.appendChild(card);
+    }
+    frame.appendChild(grid);
+  }
+
+  return frame;
+}
+
+// ── DS primitive helpers ──────────────────────────────────────────────────────
+
+const DS_DARK:  RGB = { r: 0.05, g: 0.10, b: 0.20 };
+const DS_MUTED: RGB = { r: 0.50, g: 0.55, b: 0.60 };
+const DS_TEAL:  RGB = { r: 0.22, g: 0.55, b: 0.55 };
+const DS_BLUE:  RGB = { r: 0.30, g: 0.55, b: 0.75 };
+
+function dsSectionFrame(name: string): FrameNode {
+  const f = figma.createFrame();
+  f.name = name;
+  f.layoutMode = "VERTICAL";
+  f.primaryAxisSizingMode = "AUTO";
+  f.counterAxisSizingMode = "FIXED";
+  f.resize(DS_W, 100);
+  f.paddingTop = f.paddingBottom = f.paddingLeft = f.paddingRight = DS_P;
+  f.itemSpacing = 32;
+  f.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+  return f;
+}
+
+function dsSectionHeader(frame: FrameNode, categoryLabel: string, title: string) {
+  const divider = figma.createRectangle();
+  divider.name = "divider";
+  divider.resize(DS_CW, 1);
+  divider.fills = [{ type: "SOLID", color: { r: 0.78, g: 0.88, b: 0.95 } }];
+  frame.appendChild(divider);
+
+  const cat = dsT(categoryLabel, 10, "Medium", DS_BLUE);
+  cat.letterSpacing = { unit: "PERCENT", value: 10 };
+  frame.appendChild(cat);
+
+  frame.appendChild(dsT(title, 28, "Bold", DS_DARK));
+}
+
+function dsSubLabel(text: string): TextNode {
+  const t2 = dsT(text.toUpperCase(), 10, "Medium", DS_TEAL);
+  t2.letterSpacing = { unit: "PERCENT", value: 8 };
+  return t2;
+}
+
+function dsAutoFrame(name: string, mode: "HORIZONTAL" | "VERTICAL", gap: number): FrameNode {
+  const f = figma.createFrame();
+  f.name = name;
+  f.layoutMode = mode;
+  f.primaryAxisSizingMode = "AUTO";
+  f.counterAxisSizingMode = "AUTO";
+  f.itemSpacing = gap;
+  f.fills = [];
+  return f;
+}
+
+function dsTableRow(isHeader: boolean, zebra: boolean): FrameNode {
+  const row = dsAutoFrame("row", "HORIZONTAL", 0);
+  row.counterAxisSizingMode = "FIXED";
+  row.resize(DS_CW, 100);
+  row.primaryAxisSizingMode = "AUTO";
+  row.paddingTop = row.paddingBottom = isHeader ? 6 : 10;
+  row.paddingLeft = row.paddingRight = 8;
   row.fills = isHeader
-    ? []
+    ? [{ type: "SOLID", color: { r: 0.96, g: 0.97, b: 0.98 } }]
     : zebra
-    ? [{ type: "SOLID", color: { r: 0.97, g: 0.97, b: 0.97 } }]
+    ? [{ type: "SOLID", color: { r: 0.985, g: 0.985, b: 0.985 } }]
     : [];
-
-  const c1 = dsFrame("c1", "VERTICAL", 0, 0);
-  c1.resize(220, 1);
-  c1.primaryAxisSizingMode = "AUTO";
-  c1.counterAxisSizingMode = "FIXED";
-  c1.fills = [];
-  c1.appendChild(col1);
-
-  const c2 = dsFrame("c2", "VERTICAL", 0, 0);
-  c2.resize(140, 1);
-  c2.primaryAxisSizingMode = "AUTO";
-  c2.counterAxisSizingMode = "FIXED";
-  c2.fills = [];
-  c2.appendChild(col2);
-
-  const c3 = dsFrame("c3", "VERTICAL", 0, 0);
-  c3.resize(160, 1);
-  c3.primaryAxisSizingMode = "AUTO";
-  c3.counterAxisSizingMode = "FIXED";
-  c3.fills = [];
-  c3.appendChild(col3);
-
-  row.appendChild(c1);
-  row.appendChild(c2);
-  row.appendChild(c3);
+  if (isHeader) {
+    row.strokes = [{ type: "SOLID", color: { r: 0.88, g: 0.92, b: 0.96 } }];
+    row.strokeWeight = 1;
+    row.strokeAlign = "INSIDE";
+  }
   return row;
 }
 
-async function buildDsTypographySection(payload: GenerateDesignSystemPayload): Promise<FrameNode> {
-  const section = dsSection("FONTES & ESCALA", "Typography");
-
-  for (const style of payload.textStyles) {
-    try {
-      await figma.loadFontAsync(style.signature.fontName as FontName);
-    } catch {
-      continue;
-    }
-
-    const lineHeightStr = style.signature.lineHeight.unit === "AUTO"
-      ? "auto"
-      : `${style.signature.lineHeight.value ?? 0}${style.signature.lineHeight.unit === "PIXELS" ? "px" : "%"}`;
-
-    // Row: sample | name | font | size | weight
-    const row = dsFrame(style.name, "HORIZONTAL", 0, 0);
-    row.counterAxisAlignItems = "CENTER";
-    row.paddingTop = row.paddingBottom = 12;
-    row.paddingLeft = row.paddingRight = 16;
-    row.fills = [{ type: "SOLID", color: { r: 0.97, g: 0.98, b: 0.99 } }];
-    row.cornerRadius = 6;
-    row.strokes = [{ type: "SOLID", color: { r: 0.88, g: 0.92, b: 0.96 } }];
-    row.strokeWeight = 1;
-
-    const clampedSize = Math.min(style.signature.fontSize, 56);
-    const sample = figma.createText();
-    sample.name = "sample";
-    sample.fontName = style.signature.fontName as FontName;
-    sample.fontSize = clampedSize;
-    sample.characters = style.name.split("/").pop() || "Aa";
-    sample.fills = [{ type: "SOLID", color: { r: 0.08, g: 0.13, b: 0.24 } }];
-    sample.textAutoResize = "WIDTH_AND_HEIGHT";
-
-    const sampleWrap = dsFrame("sw", "VERTICAL", 0, 0);
-    sampleWrap.resize(220, 1);
-    sampleWrap.primaryAxisSizingMode = "AUTO";
-    sampleWrap.counterAxisSizingMode = "FIXED";
-    sampleWrap.fills = [];
-    sampleWrap.appendChild(sample);
-
-    const makeCol = (txt: string, w: number) => {
-      const f = dsFrame("col", "VERTICAL", 0, 0);
-      f.resize(w, 1);
-      f.primaryAxisSizingMode = "AUTO";
-      f.counterAxisSizingMode = "FIXED";
-      f.fills = [];
-      f.appendChild(dsText(txt, 9, "Regular", { r: 0.4, g: 0.45, b: 0.55 }));
-      return f;
-    };
-
-    row.appendChild(sampleWrap);
-    row.appendChild(makeCol(style.signature.fontName.family, 120));
-    row.appendChild(makeCol(`${style.signature.fontSize}px`, 60));
-    row.appendChild(makeCol(style.signature.fontName.style, 80));
-    row.appendChild(makeCol(lineHeightStr, 60));
-
-    section.appendChild(row);
-  }
-
-  return section;
+function dsTableCell(content: SceneNode, width: number): FrameNode {
+  const cell = dsAutoFrame("cell", "VERTICAL", 0);
+  cell.counterAxisSizingMode = "FIXED";
+  cell.resize(width, 100);
+  cell.primaryAxisSizingMode = "AUTO";
+  cell.appendChild(content);
+  return cell;
 }
 
-function buildDsSizesSection(payload: GenerateDesignSystemPayload): FrameNode {
-  const section = dsSection("ESPAÇAMENTO & DIMENSÕES", "Sizes");
-  const MAX_BAR = 400;
-
-  const values = payload.sizeItems
-    .filter((s) => typeof s.value === "number" && s.value > 0)
-    .sort((a, b) => a.value - b.value);
-
-  const maxVal = Math.max(...values.map((s) => s.value), 1);
-
-  for (const item of values) {
-    const row = dsFrame(item.name, "HORIZONTAL", 16, 0);
-    row.counterAxisAlignItems = "CENTER";
-    row.fills = [];
-
-    const nameCol = dsFrame("n", "VERTICAL", 0, 0);
-    nameCol.resize(160, 1);
-    nameCol.primaryAxisSizingMode = "AUTO";
-    nameCol.counterAxisSizingMode = "FIXED";
-    nameCol.fills = [];
-    nameCol.appendChild(dsText(item.name.split("/").pop() || item.name, 9, "Regular", { r: 0.3, g: 0.3, b: 0.3 }));
-
-    const barW = Math.max(4, Math.round((item.value / maxVal) * MAX_BAR));
-    const bar = figma.createRectangle();
-    bar.name = "bar";
-    bar.resize(barW, 14);
-    bar.cornerRadius = 3;
-    bar.fills = [{ type: "SOLID", color: { r: 0.22, g: 0.55, b: 0.55 } }];
-
-    const valLbl = dsText(`${item.value}px`, 9, "Regular", { r: 0.5, g: 0.5, b: 0.5 });
-
-    row.appendChild(nameCol);
-    row.appendChild(bar);
-    row.appendChild(valLbl);
-    section.appendChild(row);
-  }
-
-  return section;
-}
-
-function buildDsEffectsSection(payload: GenerateDesignSystemPayload): FrameNode {
-  const section = dsSection("EFEITOS", "Effects");
-  const grid = dsFrame("effect-cards", "HORIZONTAL", 20, 0);
-  grid.layoutWrap = "WRAP";
-  grid.counterAxisSpacing = 20;
-  grid.fills = [];
-
-  for (const item of payload.effectStyles) {
-    const card = dsFrame(item.name, "VERTICAL", 10, 16);
-    card.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-    card.cornerRadius = 8;
-    card.strokes = [{ type: "SOLID", color: { r: 0.9, g: 0.9, b: 0.9 } }];
-    card.strokeWeight = 1;
-
-    const rect = figma.createRectangle();
-    rect.name = "effect-preview";
-    rect.resize(100, 100);
-    rect.cornerRadius = 8;
-    rect.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-    const builtEffects = item.effects
-      .map((e) => buildEffectFromRecord(e))
-      .filter((e): e is Effect => e !== null);
-    if (builtEffects.length > 0) rect.effects = builtEffects;
-
-    const shortName = item.name.split("/").pop() || item.name;
-    const lbl = dsText(shortName, 10, "Medium", { r: 0.1, g: 0.1, b: 0.1 });
-    lbl.textAutoResize = "WIDTH_AND_HEIGHT";
-
-    card.appendChild(rect);
-    card.appendChild(lbl);
-    grid.appendChild(card);
-  }
-
-  section.appendChild(grid);
-  return section;
-}
-
-// ── DS frame/text helpers ─────────────────────────────────────────────────────
-
-function dsSection(categoryLabel: string, title: string): FrameNode {
-  const frame = dsFrame(title, "VERTICAL", 20, 0);
-
-  const topDivider = figma.createRectangle();
-  topDivider.name = "divider-top";
-  topDivider.resize(560, 1);
-  topDivider.fills = [{ type: "SOLID", color: { r: 0.78, g: 0.88, b: 0.95 } }];
-  frame.appendChild(topDivider);
-
-  const cat = dsText(categoryLabel, 9, "Medium", { r: 0.3, g: 0.55, b: 0.75 });
-  cat.letterSpacing = { unit: "PERCENT", value: 8 };
-  frame.appendChild(cat);
-
-  const header = dsText(title, 22, "Bold", { r: 0.08, g: 0.13, b: 0.24 });
-  frame.appendChild(header);
-
-  return frame;
-}
-
-function dsFrame(name: string, mode: "HORIZONTAL" | "VERTICAL", gap: number, padding: number): FrameNode {
-  const frame = figma.createFrame();
-  frame.name = name;
-  frame.layoutMode = mode;
-  frame.primaryAxisSizingMode = "AUTO";
-  frame.counterAxisSizingMode = "AUTO";
-  frame.itemSpacing = gap;
-  if (padding > 0) {
-    frame.paddingTop = frame.paddingBottom = frame.paddingLeft = frame.paddingRight = padding;
-  }
-  frame.fills = [];
-  return frame;
-}
-
-function dsText(content: string, size: number, weight: "Regular" | "Medium" | "Bold", color: RGB): TextNode {
+function dsT(content: string, size: number, weight: "Regular" | "Medium" | "Bold", color: RGB): TextNode {
   const text = figma.createText();
   text.fontName = { family: "Inter", style: weight };
   text.fontSize = size;
@@ -2501,11 +2568,11 @@ function dsText(content: string, size: number, weight: "Regular" | "Medium" | "B
   return text;
 }
 
-function dsRgbaToHex(v: RgbaValue): string {
-  const hex = (n: number) => Math.round(n * 255).toString(16).padStart(2, "0");
+function dsHex(v: RgbaValue): string {
+  const h = (n: number) => Math.round(n * 255).toString(16).padStart(2, "0");
   return v.a < 1
     ? `rgba(${Math.round(v.r * 255)}, ${Math.round(v.g * 255)}, ${Math.round(v.b * 255)}, ${Math.round(v.a * 100) / 100})`
-    : `#${hex(v.r)}${hex(v.g)}${hex(v.b)}`;
+    : `#${h(v.r)}${h(v.g)}${h(v.b)}`;
 }
 
 function buildEffectFromRecord(e: Record<string, unknown>): Effect | null {
