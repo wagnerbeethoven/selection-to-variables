@@ -45,10 +45,11 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_scan_loading: "Scanning...",
 
     // Tabs
-    tab_variables: "Variables",
-    tab_text_styles: "Text styles",
-    tab_color_styles: "Color styles",
-    tab_effect_styles: "Effect styles",
+    tab_colors: "Colors",
+    tab_typography: "Typography",
+    tab_sizes: "Sizes",
+    tab_effects: "Effects",
+    tab_design_guide: "Design Guide",
 
     // Step 3
     step3_desc: "Choose what to create from the scanned tokens:",
@@ -62,6 +63,11 @@ const messages: Record<Locale, Record<string, string>> = {
 
     // Empty states
     empty_tokens: "No tokens found. Select Groups, Frames, or Sections then scan.",
+    empty_colors: "No color tokens or styles detected.",
+    empty_typography: "No typography tokens or styles detected.",
+    empty_sizes: "No size tokens detected.",
+    empty_effects: "No effect styles detected.",
+    empty_design_guide: "Scan a selection first to generate the design guide.",
     empty_color_styles_pending: "No color styles detected yet.",
     empty_effect_styles_pending: "No effect styles detected yet.",
     empty_text_styles_pending: "No text styles detected yet.",
@@ -189,10 +195,11 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_scan: "Escanear seleção",
     btn_scan_loading: "Escaneando...",
 
-    tab_variables: "Variáveis",
-    tab_text_styles: "Estilos de texto",
-    tab_color_styles: "Estilos de cor",
-    tab_effect_styles: "Estilos de efeito",
+    tab_colors: "Cores",
+    tab_typography: "Tipografia",
+    tab_sizes: "Tamanhos",
+    tab_effects: "Efeitos",
+    tab_design_guide: "Guia de Design",
 
     step3_desc: "Escolha o que criar a partir dos tokens escaneados:",
     btn_export: "Exportar JSON",
@@ -204,6 +211,11 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_next: "Próximo →",
 
     empty_tokens: "Nenhum token encontrado. Selecione Grupos, Frames ou Seções e escaneie.",
+    empty_colors: "Nenhum token ou estilo de cor detectado.",
+    empty_typography: "Nenhum token ou estilo tipográfico detectado.",
+    empty_sizes: "Nenhum token de tamanho detectado.",
+    empty_effects: "Nenhum estilo de efeito detectado.",
+    empty_design_guide: "Escaneie uma seleção para gerar o guia de design.",
     empty_color_styles_pending: "Nenhum estilo de cor detectado ainda.",
     empty_effect_styles_pending: "Nenhum estilo de efeito detectado ainda.",
     empty_text_styles_pending: "Nenhum estilo de texto detectado ainda.",
@@ -319,10 +331,11 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_scan: "Escanear selección",
     btn_scan_loading: "Escaneando...",
 
-    tab_variables: "Variables",
-    tab_text_styles: "Estilos de texto",
-    tab_color_styles: "Estilos de color",
-    tab_effect_styles: "Estilos de efecto",
+    tab_colors: "Colores",
+    tab_typography: "Tipografía",
+    tab_sizes: "Tamaños",
+    tab_effects: "Efectos",
+    tab_design_guide: "Guía de Diseño",
 
     step3_desc: "Elige qué crear a partir de los tokens escaneados:",
     btn_export: "Exportar JSON",
@@ -334,6 +347,11 @@ const messages: Record<Locale, Record<string, string>> = {
     btn_next: "Siguiente →",
 
     empty_tokens: "No se encontraron tokens. Selecciona Grupos, Marcos o Secciones y escanea.",
+    empty_colors: "No se detectaron tokens ni estilos de color.",
+    empty_typography: "No se detectaron tokens ni estilos tipográficos.",
+    empty_sizes: "No se detectaron tokens de tamaño.",
+    empty_effects: "No se detectaron estilos de efecto.",
+    empty_design_guide: "Escanea una selección para generar la guía de diseño.",
     empty_color_styles_pending: "No se detectaron estilos de color aún.",
     empty_effect_styles_pending: "No se detectaron estilos de efecto aún.",
     empty_text_styles_pending: "No se detectaron estilos de texto aún.",
