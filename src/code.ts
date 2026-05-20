@@ -512,7 +512,7 @@ function collectColorItems(node: SceneNode, items: Map<string, RawItem>, trail: 
     }
 
     const value = rgbaFromPaint(paint);
-    const key = `color:${value.r}:${value.g}:${value.b}:${value.a}:${category}`;
+    const key = `color:${value.r}:${value.g}:${value.b}:${value.a}`;
     upsertItem(items, key, {
       id: key,
       group: "colors",
@@ -580,7 +580,20 @@ function collectTextItems(node: TextNode, items: Map<string, RawItem>, trail: st
 function collectSizeItems(node: SceneNode, items: Map<string, RawItem>, trail: string[]) {
   collectAutoLayoutSpacing(node, items, trail);
 
-  if ("width" in node) {
+  // Only collect width/height from semantically meaningful contexts — not generic wrappers
+  const context = getSemanticContext(node, trail);
+  const hasMeaningfulSizeContext =
+    context.includes("icon") ||
+    context.includes("button") ||
+    context.includes("avatar") ||
+    context.includes("image") ||
+    context.includes("card") ||
+    context.includes("badge") ||
+    context.includes("chip") ||
+    context.includes("tag") ||
+    context.includes("thumbnail");
+
+  if (hasMeaningfulSizeContext && "width" in node) {
     const width = round(node.width);
     const widthKey = `width:${width}`;
     const category = inferSizeCategory("width", node, trail);
@@ -597,7 +610,7 @@ function collectSizeItems(node: SceneNode, items: Map<string, RawItem>, trail: s
     });
   }
 
-  if ("height" in node) {
+  if (hasMeaningfulSizeContext && "height" in node) {
     const height = round(node.height);
     const heightKey = `height:${height}`;
     const category = inferSizeCategory("height", node, trail);
@@ -692,7 +705,7 @@ function disambiguateNames<T extends { name: string }>(items: T[]): T[] {
     if ((count.get(item.name) ?? 1) <= 1) continue;
     const i = (index.get(item.name) ?? 0) + 1;
     index.set(item.name, i);
-    item.name = `${item.name}-${i}`;
+    if (i > 1) item.name = `${item.name}-${i}`;
   }
   return items;
 }
