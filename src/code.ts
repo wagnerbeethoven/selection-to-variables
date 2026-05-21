@@ -789,13 +789,16 @@ function getSemanticContext(node: SceneNode, trail: string[]): string {
 // Variables use flat, category-only names.
 // Styles (buildColorStyleName) use full semantic paths — kept separate.
 
+// 4 top-level groups: cores / escala / conteudo / estados
+// All floats live under "escala" with sub-categories.
+
 function buildColorTokenName(value: RgbaValue): string {
-  return `colors/${rgbaToPaletteName(value.r, value.g, value.b, value.a)}`;
+  return `cores/${rgbaToPaletteName(value.r, value.g, value.b, value.a)}`;
 }
 
 function buildTextTokenName(_category: string, text: string, fallbackName: string): string {
-  const slug = slugify(text).slice(0, 32) || slugify(fallbackName).slice(0, 32) || "text";
-  return `content/${slug}`;
+  const slug = slugify(text).slice(0, 32) || slugify(fallbackName).slice(0, 32) || "texto";
+  return `conteudo/${slug}`;
 }
 
 function buildSizeTokenName(category: string, value: number): string {
@@ -804,26 +807,26 @@ function buildSizeTokenName(category: string, value: number): string {
 
 function flatSizePath(category: string): string {
   const map: Record<string, string> = {
-    "typography/font-size":    "typography",
-    "typography/line-height":  "typography/line-height",
-    "layout/gap":              "spacing",
-    "layout/padding/top":      "spacing",
-    "layout/padding/right":    "spacing",
-    "layout/padding/bottom":   "spacing",
-    "layout/padding/left":     "spacing",
-    "shape/radius":            "border-radius",
-    "dimension/width":         "dimension",
-    "dimension/height":        "dimension",
-    "icon/width":              "dimension",
-    "icon/height":             "dimension",
-    "component/width":         "dimension",
-    "component/height":        "dimension",
-    "media/width":             "dimension",
-    "media/height":            "dimension",
-    "layout/width":            "dimension",
-    "layout/height":           "dimension",
+    "typography/font-size":    "escala/tipografia",
+    "typography/line-height":  "escala/tipografia/altura",
+    "layout/gap":              "escala/espacamento",
+    "layout/padding/top":      "escala/espacamento",
+    "layout/padding/right":    "escala/espacamento",
+    "layout/padding/bottom":   "escala/espacamento",
+    "layout/padding/left":     "escala/espacamento",
+    "shape/radius":            "escala/raio",
+    "dimension/width":         "escala/dimensao",
+    "dimension/height":        "escala/dimensao",
+    "icon/width":              "escala/dimensao",
+    "icon/height":             "escala/dimensao",
+    "component/width":         "escala/dimensao",
+    "component/height":        "escala/dimensao",
+    "media/width":             "escala/dimensao",
+    "media/height":            "escala/dimensao",
+    "layout/width":            "escala/dimensao",
+    "layout/height":           "escala/dimensao",
   };
-  return map[category] ?? category;
+  return map[category] ?? `escala/${slugify(category)}`;
 }
 
 async function createVariables(payload: CreatePayload) {
