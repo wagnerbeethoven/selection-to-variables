@@ -814,6 +814,17 @@ function buildSizeTokenName(_category: string, value: number): string {
   return `${varGroup("scale")}/${normalizeNumber(round(value))}`;
 }
 
+/** Stable key for deduplicating variables by value across any collection. */
+function varValueKey(type: string, value: unknown): string | null {
+  if (type === "COLOR" && isRgbaValue(value as VariableValue)) {
+    const v = value as { r: number; g: number; b: number; a: number };
+    return `color:${Math.round(v.r * 255)}:${Math.round(v.g * 255)}:${Math.round(v.b * 255)}:${Math.round(v.a * 1000)}`;
+  }
+  if (type === "FLOAT" && typeof value === "number") return `float:${Math.round(value * 1000)}`;
+  if (type === "STRING" && typeof value === "string") return `str:${value}`;
+  return null;
+}
+
 async function createVariables(payload: CreatePayload) {
   const includedItems = payload.items.filter((item) => item.include);
   if (includedItems.length === 0) {
@@ -827,47 +838,64 @@ async function createVariables(payload: CreatePayload) {
   const collection = await findOrCreateCollection(collectionName);
   const modeId = ensureMode(collection, modeName);
 
-  // All variables in the file (all collections) keyed by type:name
-  // Prevents cross-collection duplicates and avoids name mangling suffixes
+  // Load all variables + collections once for both name and value lookups
+  const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+  const collFirstMode = new Map(allCollections.map((c) => [c.id, c.modes[0]?.modeId ?? ""]));
+
   const allLocalVars = (await figma.variables.getLocalVariablesAsync())
     .filter((v) => isSupportedVariableKind(v.resolvedType));
 
-  const fileVarsByKey = new Map<string, Variable>();
+  const fileVarsByName  = new Map<string, Variable>(); // key = TYPE:name
+  const fileVarsByValue = new Map<string, Variable>(); // key = color:r:g:b:a | float:N | str:S
+
   for (const v of allLocalVars) {
-    const key = buildVariableLookupKey(v.resolvedType, v.name);
-    if (!fileVarsByKey.has(key)) fileVarsByKey.set(key, v);
+    const nameKey = buildVariableLookupKey(v.resolvedType, v.name);
+    if (!fileVarsByName.has(nameKey)) fileVarsByName.set(nameKey, v);
+
+    const firstMode = collFirstMode.get(v.variableCollectionId) ?? "";
+    if (!firstMode) continue;
+    const val = v.valuesByMode[firstMode];
+    const vk = varValueKey(v.resolvedType as string, val);
+    if (vk && !fileVarsByValue.has(vk)) fileVarsByValue.set(vk, v);
   }
 
-  // usedKeys covers entire file — avoids creating names that already exist anywhere
-  const usedKeys = new Set<string>(fileVarsByKey.keys());
+  // usedKeys covers entire file — prevents name collisions across collections
+  const usedKeys = new Set<string>(fileVarsByName.keys());
   const createdVariables = new Map<string, Variable>();
 
   let created = 0;
   let reused = 0;
   for (const item of includedItems) {
-    const originalKey = buildVariableLookupKey(item.type, item.name);
-    const fileExisting = fileVarsByKey.get(originalKey);
-
-    if (fileExisting) {
-      // Variable exists anywhere in file → reuse it
-      createdVariables.set(item.id, fileExisting);
-      // Only update value if it belongs to the target collection (don't mutate foreign collections)
-      if (fileExisting.variableCollectionId === collection.id) {
-        if (item.type === "COLOR") fileExisting.setValueForMode(modeId, item.value as RGBA);
-        else if (item.type === "STRING") fileExisting.setValueForMode(modeId, item.value as string);
-        else fileExisting.setValueForMode(modeId, Number(item.value));
+    // 1. Match by name (exact)
+    const nameKey = buildVariableLookupKey(item.type, item.name);
+    const byName = fileVarsByName.get(nameKey);
+    if (byName) {
+      createdVariables.set(item.id, byName);
+      if (byName.variableCollectionId === collection.id) {
+        if (item.type === "COLOR") byName.setValueForMode(modeId, item.value as RGBA);
+        else if (item.type === "STRING") byName.setValueForMode(modeId, item.value as string);
+        else byName.setValueForMode(modeId, Number(item.value));
       }
       reused += 1;
       continue;
     }
 
-    // Truly new — generate unique name and create in target collection
+    // 2. Match by value (catches custom-named variables with same color/number)
+    const vk = varValueKey(item.type, item.value);
+    const byValue = vk ? fileVarsByValue.get(vk) : undefined;
+    if (byValue) {
+      createdVariables.set(item.id, byValue);
+      reused += 1;
+      continue;
+    }
+
+    // 3. Truly new — create in target collection
     const safeName = ensureUniqueVariableName(item.name, item.type, item.id, usedKeys);
     if (!safeName) continue;
 
     const variable = figma.variables.createVariable(safeName, collection, item.type);
     const variableKey = buildVariableLookupKey(item.type, safeName);
-    fileVarsByKey.set(variableKey, variable);
+    fileVarsByName.set(variableKey, variable);
     usedKeys.add(variableKey);
     created += 1;
 
