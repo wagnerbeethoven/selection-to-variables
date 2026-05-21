@@ -548,7 +548,7 @@ function collectTextItems(node: TextNode, items: Map<string, RawItem>, trail: st
 
   if (typeof node.fontSize === "number") {
     const sz = round(node.fontSize);
-    const key = `typography:${sz}`;
+    const key = `scale:${sz}`;
     upsertItem(items, key, {
       id: key,
       group: "sizes",
@@ -564,7 +564,7 @@ function collectTextItems(node: TextNode, items: Map<string, RawItem>, trail: st
 
   if (node.lineHeight !== figma.mixed && node.lineHeight.unit === "PIXELS") {
     const value = round(node.lineHeight.value);
-    const key = `typography-lh:${value}`;
+    const key = `scale:${value}`;
     upsertItem(items, key, {
       id: key,
       group: "sizes",
@@ -597,7 +597,7 @@ function collectSizeItems(node: SceneNode, items: Map<string, RawItem>, trail: s
 
   if (hasMeaningfulSizeContext && "width" in node) {
     const width = round(node.width);
-    const widthKey = `width:${width}`;
+    const widthKey = `scale:${width}`;
     const category = inferSizeCategory("width", node, trail);
     upsertItem(items, widthKey, {
       id: widthKey,
@@ -614,7 +614,7 @@ function collectSizeItems(node: SceneNode, items: Map<string, RawItem>, trail: s
 
   if (hasMeaningfulSizeContext && "height" in node) {
     const height = round(node.height);
-    const heightKey = `height:${height}`;
+    const heightKey = `scale:${height}`;
     const category = inferSizeCategory("height", node, trail);
     upsertItem(items, heightKey, {
       id: heightKey,
@@ -631,7 +631,7 @@ function collectSizeItems(node: SceneNode, items: Map<string, RawItem>, trail: s
 
   if ("cornerRadius" in node && typeof node.cornerRadius === "number" && node.cornerRadius > 0) {
     const radius = round(node.cornerRadius);
-    const radiusKey = `radius:${radius}`;
+    const radiusKey = `scale:${radius}`;
     upsertItem(items, radiusKey, {
       id: radiusKey,
       group: "sizes",
@@ -653,7 +653,7 @@ function collectAutoLayoutSpacing(node: SceneNode, items: Map<string, RawItem>, 
 
   if ("itemSpacing" in node && typeof node.itemSpacing === "number") {
     const gap = round(node.itemSpacing);
-    const key = `spacing:${gap}`;          // unified key — merges with padding of same value
+    const key = `scale:${gap}`;            // unified key — same value = same token
     upsertItem(items, key, {
       id: key,
       group: "sizes",
@@ -680,7 +680,7 @@ function collectAutoLayoutSpacing(node: SceneNode, items: Map<string, RawItem>, 
     }
 
     const value = round(rawValue);
-    const key = `spacing:${value}`;        // unified key — all padding sides merge by value
+    const key = `scale:${value}`;           // unified key — all floats merge by value
     upsertItem(items, key, {
       id: key,
       group: "sizes",
@@ -789,44 +789,29 @@ function getSemanticContext(node: SceneNode, trail: string[]): string {
 // Variables use flat, category-only names.
 // Styles (buildColorStyleName) use full semantic paths — kept separate.
 
-// 4 top-level groups: cores / escala / conteudo / estados
-// All floats live under "escala" with sub-categories.
+// 4 top-level groups, no sub-groups, locale-aware names.
+// Same numeric value = same token regardless of category (spacing, radius, etc.)
+
+function varGroup(type: "color" | "scale" | "content"): string {
+  const map: Record<string, Record<string, string>> = {
+    "en":    { color: "palette",  scale: "scale",  content: "content"   },
+    "pt-BR": { color: "cores",    scale: "escala", content: "conteudo"  },
+    "es":    { color: "paleta",   scale: "escala", content: "contenido" },
+  };
+  return (map[currentLocale] ?? map["en"])[type];
+}
 
 function buildColorTokenName(value: RgbaValue): string {
-  return `cores/${rgbaToPaletteName(value.r, value.g, value.b, value.a)}`;
+  return `${varGroup("color")}/${rgbaToPaletteName(value.r, value.g, value.b, value.a)}`;
 }
 
 function buildTextTokenName(_category: string, text: string, fallbackName: string): string {
-  const slug = slugify(text).slice(0, 32) || slugify(fallbackName).slice(0, 32) || "texto";
-  return `conteudo/${slug}`;
+  const slug = slugify(text).slice(0, 32) || slugify(fallbackName).slice(0, 32) || "text";
+  return `${varGroup("content")}/${slug}`;
 }
 
-function buildSizeTokenName(category: string, value: number): string {
-  return `${flatSizePath(category)}/${normalizeNumber(round(value))}`;
-}
-
-function flatSizePath(category: string): string {
-  const map: Record<string, string> = {
-    "typography/font-size":    "escala/tipografia",
-    "typography/line-height":  "escala/tipografia/altura",
-    "layout/gap":              "escala/espacamento",
-    "layout/padding/top":      "escala/espacamento",
-    "layout/padding/right":    "escala/espacamento",
-    "layout/padding/bottom":   "escala/espacamento",
-    "layout/padding/left":     "escala/espacamento",
-    "shape/radius":            "escala/raio",
-    "dimension/width":         "escala/dimensao",
-    "dimension/height":        "escala/dimensao",
-    "icon/width":              "escala/dimensao",
-    "icon/height":             "escala/dimensao",
-    "component/width":         "escala/dimensao",
-    "component/height":        "escala/dimensao",
-    "media/width":             "escala/dimensao",
-    "media/height":            "escala/dimensao",
-    "layout/width":            "escala/dimensao",
-    "layout/height":           "escala/dimensao",
-  };
-  return map[category] ?? `escala/${slugify(category)}`;
+function buildSizeTokenName(_category: string, value: number): string {
+  return `${varGroup("scale")}/${normalizeNumber(round(value))}`;
 }
 
 async function createVariables(payload: CreatePayload) {
