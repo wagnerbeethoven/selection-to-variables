@@ -833,20 +833,27 @@ async function createVariables(payload: CreatePayload) {
   let created = 0;
   let reused = 0;
   for (const item of includedItems) {
-    const safeName = ensureUniqueVariableName(item.name, item.type, item.id, usedKeys);
-    if (!safeName) {
+    // Variable with exact same name already in collection → reuse, skip name mangling
+    const originalKey = buildVariableLookupKey(item.type, item.name);
+    const existingByName = existingVariables.get(originalKey);
+
+    if (existingByName) {
+      createdVariables.set(item.id, existingByName);
+      if (item.type === "COLOR") existingByName.setValueForMode(modeId, item.value as RGBA);
+      else if (item.type === "STRING") existingByName.setValueForMode(modeId, item.value as string);
+      else existingByName.setValueForMode(modeId, Number(item.value));
+      reused += 1;
       continue;
     }
 
+    // New variable — generate unique name and create
+    const safeName = ensureUniqueVariableName(item.name, item.type, item.id, usedKeys);
+    if (!safeName) continue;
+
+    const variable = figma.variables.createVariable(safeName, collection, item.type);
     const variableKey = buildVariableLookupKey(item.type, safeName);
-    let variable = existingVariables.get(variableKey);
-    if (!variable) {
-      variable = figma.variables.createVariable(safeName, collection, item.type);
-      existingVariables.set(variableKey, variable);
-      created += 1;
-    } else {
-      reused += 1;
-    }
+    existingVariables.set(variableKey, variable);
+    created += 1;
 
     createdVariables.set(item.id, variable);
 
