@@ -197,6 +197,8 @@ function setLocale(locale: Locale) {
   document.documentElement.lang = locale === "pt-BR" ? "pt" : locale;
   applyTranslations(locale);
   renderWhatsNew(locale);
+  renderHowToUse(locale);
+  syncAboutDate(locale);
   syncWindowToggleLabel();
   if (!state.busy) {
     scanButtonEl.textContent = t("btn_scan", locale);
@@ -621,20 +623,52 @@ actionTargetEls.forEach((input) => {
 
 // ── About dialog ──────────────────────────────────────────────────────────────
 aboutVersionEl.textContent = PLUGIN_VERSION;
-aboutBuildDateEl.textContent = PLUGIN_BUILD_DATE;
+
+function formatBuildDate(isoDate: string, locale: Locale): string {
+  try {
+    const date = new Date(isoDate + "T12:00:00");
+    const intlLocale = locale === "pt-BR" ? "pt-BR" : locale === "es" ? "es-ES" : "en-US";
+    return date.toLocaleDateString(intlLocale, { day: "numeric", month: "long", year: "numeric" });
+  } catch {
+    return isoDate;
+  }
+}
+
+function syncAboutDate(locale: Locale) {
+  aboutBuildDateEl.textContent = formatBuildDate(PLUGIN_BUILD_DATE, locale);
+}
+
+syncAboutDate(state.locale);
 
 function renderWhatsNew(locale: Locale) {
   whatsNewSummaryEl.textContent = t("whats_new_title", locale, { version: PLUGIN_VERSION });
   const items = [
+    "whats_new_design_guide",
+    "whats_new_tabs",
+    "whats_new_4_groups",
+    "whats_new_no_duplicates",
+    "whats_new_checkboxes",
+    "whats_new_ds_frames",
     "whats_new_i18n",
-    "whats_new_wizard",
-    "whats_new_about",
-    "whats_new_dark_mode",
     "whats_new_a11y",
-    "whats_new_perf",
   ];
   whatsNewListEl.innerHTML = items
     .map((key) => `<li>${escapeHtml(t(key, locale))}</li>`)
+    .join("");
+}
+
+function renderHowToUse(locale: Locale) {
+  const howToEl = document.getElementById("howToUseList");
+  if (!howToEl) return;
+  const steps = [
+    "how_step_1",
+    "how_step_2",
+    "how_step_3",
+    "how_step_4",
+    "how_step_5",
+  ];
+  howToEl.innerHTML = steps
+    .map((key, i) => `<li><strong>${i + 1}.</strong> ${escapeHtml(t(key, locale))}</li>`)
     .join("");
 }
 
@@ -667,6 +701,7 @@ document.documentElement.lang = state.locale === "pt-BR" ? "pt" : state.locale;
 localeSelectEl.value = state.locale;
 applyTranslations(state.locale);
 renderWhatsNew(state.locale);
+renderHowToUse(state.locale);
 sendPluginMessage({ type: "load-prefs" });
 syncWindowToggleLabel();
 syncCreateActions();
